@@ -1,0 +1,10 @@
+[package]
+name = "mtcnn"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+tensorflow = "0.17.0"
+image = "0.23.0"
+imageproc = "0.22.0"
+structopt = "0.3"
