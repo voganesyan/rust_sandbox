@@ -1,7 +1,6 @@
 //! This example showcases an interactive version of the Game of Life, invented
 //! by John Conway. It leverages a `Canvas` together with other widgets.
 mod preset;
-mod style;
 
 use grid::Grid;
 use iced::button::{self, Button};
@@ -149,7 +148,6 @@ impl Application for GameOfLife {
         Container::new(content)
             .width(Length::Fill)
             .height(Length::Fill)
-            .style(style::Container)
             .into()
     }
 }
@@ -833,12 +831,10 @@ impl Controls {
                     Text::new(if is_playing { "Pause" } else { "Play" }),
                 )
                 .on_press(Message::TogglePlayback)
-                .style(style::Button),
             )
             .push(
                 Button::new(&mut self.next_button, Text::new("Next"))
                     .on_press(Message::Next)
-                    .style(style::Button),
             );
 
         let speed_controls = Row::new()
@@ -852,7 +848,6 @@ impl Controls {
                     speed as f32,
                     Message::SpeedChanged,
                 )
-                .style(style::Slider),
             )
             .push(Text::new(format!("x{}", speed)).size(16));
 
@@ -877,12 +872,10 @@ impl Controls {
                 )
                 .padding(8)
                 .text_size(16)
-                .style(style::PickList),
             )
             .push(
                 Button::new(&mut self.clear_button, Text::new("Clear"))
                     .on_press(Message::Clear)
-                    .style(style::Clear),
             )
             .into()
     }
