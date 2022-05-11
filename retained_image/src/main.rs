@@ -2,7 +2,8 @@
 
 use eframe::egui;
 use egui_extras::RetainedImage;
-  
+
+use std::sync::mpsc;
 use std::thread;
 use opencv::{
 	// highgui,
@@ -11,43 +12,12 @@ use opencv::{
 	videoio,
 };
 
-fn start_reading_video() -> Result<()> {
-	// let window = "video capture";
-	// highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
-	#[cfg(ocvrs_opencv_branch_32)]
-	let mut cam = videoio::VideoCapture::new_default(0)?; // 0 is the default camera
-	#[cfg(not(ocvrs_opencv_branch_32))]
-	let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
-	let opened = videoio::VideoCapture::is_opened(&cam)?;
-	if !opened {
-		panic!("Unable to open default camera!");
-	}
-	loop {
-		let mut frame = Mat::default();
-		cam.read(&mut frame)?;
-        println!("read");
-		// if frame.size()?.width > 0 {
-		// 	highgui::imshow(window, &mut frame)?;
-		// }
-		// let key = highgui::wait_key(10)?;
-		// if key > 0 && key != 255 {
-		// 	break;
-		// }
-	}
-	Ok(())
-}
-
 
 fn main() {
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(500.0, 900.0)),
         ..Default::default()
     };
-
-    let handle = thread::spawn(|| {
-        start_reading_video();
-    });
-    // handle.join().unwrap();
 
     eframe::run_native(
         "Show an image with eframe/egui",
@@ -58,7 +28,25 @@ fn main() {
 
 struct MyApp {
     image: RetainedImage,
+    rx: Option<mpsc::Receiver<Mat>>,
 }
+
+
+fn start_sending_frames(tx: mpsc::Sender<Mat>) -> Result<()> {
+    let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
+    let opened = videoio::VideoCapture::is_opened(&cam)?;
+    if !opened {
+        panic!("Unable to open default camera!");
+    }
+    loop {
+        let mut frame = Mat::default();
+        cam.read(&mut frame)?;
+        println!("read");
+        tx.send(frame).unwrap();
+    }
+    Ok(())
+}
+
 
 impl Default for MyApp {
     fn default() -> Self {
@@ -68,6 +56,7 @@ impl Default for MyApp {
                 include_bytes!("rust-logo-256x256.png"),
             )
             .unwrap(),
+            rx: None,
         }
     }
 }
@@ -75,7 +64,28 @@ impl Default for MyApp {
 impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            if ui.button("Run Video").clicked() {
+                let (tx, rx) = mpsc::channel::<Mat>();
+                self.rx = Some(rx);
+                let _handle = thread::spawn(move || {
+                    start_sending_frames(tx).unwrap();
+                });
+                // handle.join().unwrap();
+            }
             ui.heading("This is an image:");
+            match &self.rx {
+                Some(rx) => {
+                    println!("Received Frame");
+                    let res = rx.try_recv();
+                    match res {
+                        Ok(_) => println!("Received Frame"),
+                        Err(e) => println!("Could not receive a frame {:?}", e),
+                    }
+                }
+                None => {
+                    println!("Receiver is not initialized yet. Click the button.");
+                }
+            }
             self.image.show(ui);
 
             ui.heading("This is a rotated image:");
