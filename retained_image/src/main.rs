@@ -5,15 +5,15 @@ use egui_extras::RetainedImage;
   
 use std::thread;
 use opencv::{
-	highgui,
+	// highgui,
 	prelude::*,
 	Result,
 	videoio,
 };
 
 fn start_reading_video() -> Result<()> {
-	let window = "video capture";
-	highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
+	// let window = "video capture";
+	// highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
 	#[cfg(ocvrs_opencv_branch_32)]
 	let mut cam = videoio::VideoCapture::new_default(0)?; // 0 is the default camera
 	#[cfg(not(ocvrs_opencv_branch_32))]
@@ -25,13 +25,14 @@ fn start_reading_video() -> Result<()> {
 	loop {
 		let mut frame = Mat::default();
 		cam.read(&mut frame)?;
-		if frame.size()?.width > 0 {
-			highgui::imshow(window, &mut frame)?;
-		}
-		let key = highgui::wait_key(10)?;
-		if key > 0 && key != 255 {
-			break;
-		}
+        println!("read");
+		// if frame.size()?.width > 0 {
+		// 	highgui::imshow(window, &mut frame)?;
+		// }
+		// let key = highgui::wait_key(10)?;
+		// if key > 0 && key != 255 {
+		// 	break;
+		// }
 	}
 	Ok(())
 }
