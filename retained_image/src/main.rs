@@ -2,12 +2,52 @@
 
 use eframe::egui;
 use egui_extras::RetainedImage;
+  
+use std::thread;
+use opencv::{
+	highgui,
+	prelude::*,
+	Result,
+	videoio,
+};
+
+fn start_reading_video() -> Result<()> {
+	let window = "video capture";
+	highgui::named_window(window, highgui::WINDOW_AUTOSIZE)?;
+	#[cfg(ocvrs_opencv_branch_32)]
+	let mut cam = videoio::VideoCapture::new_default(0)?; // 0 is the default camera
+	#[cfg(not(ocvrs_opencv_branch_32))]
+	let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
+	let opened = videoio::VideoCapture::is_opened(&cam)?;
+	if !opened {
+		panic!("Unable to open default camera!");
+	}
+	loop {
+		let mut frame = Mat::default();
+		cam.read(&mut frame)?;
+		if frame.size()?.width > 0 {
+			highgui::imshow(window, &mut frame)?;
+		}
+		let key = highgui::wait_key(10)?;
+		if key > 0 && key != 255 {
+			break;
+		}
+	}
+	Ok(())
+}
+
 
 fn main() {
     let options = eframe::NativeOptions {
         initial_window_size: Some(egui::vec2(500.0, 900.0)),
         ..Default::default()
     };
+
+    let handle = thread::spawn(|| {
+        start_reading_video();
+    });
+    // handle.join().unwrap();
+
     eframe::run_native(
         "Show an image with eframe/egui",
         options,
