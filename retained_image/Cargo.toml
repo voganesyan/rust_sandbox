@@ -1,5 +1,5 @@
 [package]
-name = "download_image"
+name = "retained_image"
 version = "0.1.0"
 authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
 license = "MIT OR Apache-2.0"
@@ -11,6 +11,4 @@ publish = false
 [dependencies]
 eframe = "0.18"
 egui_extras = { version = "0.18", features = ["image"] }
-ehttp = "0.2"
-image = { version = "0.24", default-features = false, features = ["jpeg"] }
-poll-promise = "0.1"
+image = { version = "0.24", default-features = false, features = ["png"] }
