@@ -87,6 +87,9 @@ impl eframe::App for MyApp {
                 }
             }
             self.image.show(ui);
+            
+            // Tell the backend to repaint as soon as possible
+            ctx.request_repaint();
 
             ui.heading("This is a rotated image:");
             ui.add(
