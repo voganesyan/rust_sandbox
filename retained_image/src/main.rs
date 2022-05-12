@@ -26,7 +26,7 @@ struct MyApp {
     image: Arc<Mutex<Mat>>,
 }
 
-fn start_sending_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
+fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
     let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
     let opened = videoio::VideoCapture::is_opened(&cam)?;
     if !opened {
@@ -56,10 +56,10 @@ impl eframe::App for MyApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             if ui.button("Run Video").clicked() {
                 let image = self.image.clone();
-                let _handle = thread::spawn(move || {
-                    start_sending_frames(image).unwrap();
+                let handle = thread::spawn(move || {
+                    start_reading_frames(image).unwrap();
                 });
-                // handle.join().unwrap();
+                handle.join().unwrap();
             }
             ui.heading("This is an image:");
 
