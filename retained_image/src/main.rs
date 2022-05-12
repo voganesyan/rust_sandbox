@@ -2,14 +2,15 @@
 
 use eframe::egui;
 use egui_extras::RetainedImage;
+use egui::ColorImage;
 
 use std::sync::mpsc;
 use std::thread;
 use opencv::{
-	// highgui,
 	prelude::*,
 	Result,
 	videoio,
+    imgproc::*
 };
 
 
@@ -41,7 +42,7 @@ fn start_sending_frames(tx: mpsc::Sender<Mat>) -> Result<()> {
     loop {
         let mut frame = Mat::default();
         cam.read(&mut frame)?;
-        println!("read");
+        println!("Read Frame: {}", frame.size().unwrap().width);
         tx.send(frame).unwrap();
     }
     Ok(())
@@ -75,10 +76,20 @@ impl eframe::App for MyApp {
             ui.heading("This is an image:");
             match &self.rx {
                 Some(rx) => {
-                    println!("Received Frame");
                     let res = rx.try_recv();
                     match res {
-                        Ok(_) => println!("Received Frame"),
+                        Ok(frame) => {
+                            println!("Received Frame");
+                            let mut frame_rgba = Mat::default();
+                            cvt_color(&frame, &mut frame_rgba, COLOR_BGR2RGBA, 0);
+                            let frame_data = frame_rgba.data_bytes().unwrap();
+                            let size = [frame.cols() as _, frame.rows() as _];
+                            let color_image = ColorImage::from_rgba_unmultiplied(size, frame_data);
+                            self.image = RetainedImage::from_color_image(
+                                "opencv-frame",
+                                color_image,
+                            );
+                        },
                         Err(e) => println!("Could not receive a frame {:?}", e),
                     }
                 }
