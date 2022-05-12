@@ -1,18 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
 use eframe::egui;
-use egui_extras::RetainedImage;
 use egui::ColorImage;
+use egui_extras::RetainedImage;
+use opencv::core::CV_8UC3;
 
-use std::sync::mpsc;
+use opencv::{imgproc::*, prelude::*, videoio, Result};
+use std::sync::{Arc, Mutex};
 use std::thread;
-use opencv::{
-	prelude::*,
-	Result,
-	videoio,
-    imgproc::*
-};
-
 
 fn main() {
     let options = eframe::NativeOptions {
@@ -28,12 +23,10 @@ fn main() {
 }
 
 struct MyApp {
-    image: RetainedImage,
-    rx: Option<mpsc::Receiver<Mat>>,
+    image: Arc<Mutex<Mat>>,
 }
 
-
-fn start_sending_frames(tx: mpsc::Sender<Mat>) -> Result<()> {
+fn start_sending_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
     let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
     let opened = videoio::VideoCapture::is_opened(&cam)?;
     if !opened {
@@ -43,21 +36,17 @@ fn start_sending_frames(tx: mpsc::Sender<Mat>) -> Result<()> {
         let mut frame = Mat::default();
         cam.read(&mut frame)?;
         println!("Read Frame: {}", frame.size().unwrap().width);
-        tx.send(frame).unwrap();
+        let mut image = shared_frame.lock().unwrap();
+        *image = frame;
     }
     Ok(())
 }
 
-
 impl Default for MyApp {
     fn default() -> Self {
+        let image = Mat::zeros(100, 100, CV_8UC3).unwrap().to_mat().unwrap();
         Self {
-            image: RetainedImage::from_image_bytes(
-                "rust-logo-256x256.png",
-                include_bytes!("rust-logo-256x256.png"),
-            )
-            .unwrap(),
-            rx: None,
+            image: Arc::new(Mutex::new(image)),
         }
     }
 }
@@ -66,53 +55,26 @@ impl eframe::App for MyApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             if ui.button("Run Video").clicked() {
-                let (tx, rx) = mpsc::channel::<Mat>();
-                self.rx = Some(rx);
+                let image = self.image.clone();
                 let _handle = thread::spawn(move || {
-                    start_sending_frames(tx).unwrap();
+                    start_sending_frames(image).unwrap();
                 });
                 // handle.join().unwrap();
             }
             ui.heading("This is an image:");
-            match &self.rx {
-                Some(rx) => {
-                    let res = rx.try_recv();
-                    match res {
-                        Ok(frame) => {
-                            println!("Received Frame");
-                            let mut frame_rgba = Mat::default();
-                            cvt_color(&frame, &mut frame_rgba, COLOR_BGR2RGBA, 0);
-                            let frame_data = frame_rgba.data_bytes().unwrap();
-                            let size = [frame.cols() as _, frame.rows() as _];
-                            let color_image = ColorImage::from_rgba_unmultiplied(size, frame_data);
-                            self.image = RetainedImage::from_color_image(
-                                "opencv-frame",
-                                color_image,
-                            );
-                        },
-                        Err(e) => println!("Could not receive a frame {:?}", e),
-                    }
-                }
-                None => {
-                    println!("Receiver is not initialized yet. Click the button.");
-                }
-            }
-            self.image.show(ui);
-            
+
+            let frame_guard = self.image.lock().unwrap();
+            let frame = &*frame_guard;
+            let size = [frame.cols() as _, frame.rows() as _];
+            let mut frame_rgba = Mat::default();
+            cvt_color(frame, &mut frame_rgba, COLOR_BGR2RGBA, 0);
+            let frame_data = frame_rgba.data_bytes().unwrap();
+            let color_image = ColorImage::from_rgba_unmultiplied(size, frame_data);
+            let image = RetainedImage::from_color_image("opencv-frame", color_image);
+            image.show(ui);
+
             // Tell the backend to repaint as soon as possible
             ctx.request_repaint();
-
-            ui.heading("This is a rotated image:");
-            ui.add(
-                egui::Image::new(self.image.texture_id(ctx), self.image.size_vec2())
-                    .rotate(45.0_f32.to_radians(), egui::Vec2::splat(0.5)),
-            );
-
-            ui.heading("This is an image you can click:");
-            ui.add(egui::ImageButton::new(
-                self.image.texture_id(ctx),
-                self.image.size_vec2(),
-            ));
         });
     }
 }
