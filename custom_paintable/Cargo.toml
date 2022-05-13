@@ -1,0 +1,12 @@
+[package]
+name = "custom_paintable"
+version = "0.1.0"
+authors = ["Vitaliy Oganesyan"]
+edition = "2021"
+
+[dependencies]
+gtk = { version = "0.4", package = "gtk4" }
+
+
+
+
