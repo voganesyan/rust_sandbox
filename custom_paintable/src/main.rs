@@ -4,7 +4,37 @@ use custom_paintable::CustomPaintable;
 use gtk::prelude::*;
 use gtk::glib;
 
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+use opencv::{imgproc::*, prelude::*, videoio, Result};
+
+
+fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
+    let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
+    let opened = videoio::VideoCapture::is_opened(&cam)?;
+    if !opened {
+        panic!("Unable to open default camera!");
+    }
+    loop {
+        let mut frame = Mat::default();
+        cam.read(&mut frame)?;
+        println!("Read Frame: {}", frame.size().unwrap().width);
+        let mut image = shared_frame.lock().unwrap();
+        *image = frame;
+    }
+    Ok(())
+}
+
+
 fn main() {
+    let shared_frame = Arc::new(Mutex::new(Mat::default()));
+    let shared_frame_clone = shared_frame.clone();
+    let handle = thread::spawn(move || {
+        start_reading_frames(shared_frame_clone).unwrap();
+    });
+    handle.join().unwrap();
+
     let application = gtk::Application::new(
         Some("com.github.gtk-rs.examples.paintable"),
         Default::default(),
