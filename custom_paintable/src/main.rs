@@ -33,7 +33,7 @@ fn main() {
     let handle = thread::spawn(move || {
         start_reading_frames(shared_frame_clone).unwrap();
     });
-    handle.join().unwrap();
+    //handle.join().unwrap();
 
     let application = gtk::Application::new(
         Some("com.github.gtk-rs.examples.paintable"),

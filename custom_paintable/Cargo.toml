@@ -6,7 +6,7 @@ edition = "2021"
 
 [dependencies]
 gtk = { version = "0.4", package = "gtk4" }
-opencv = "0.63"
+opencv = { version = "0.63", default-features = false, features = ["imgproc", "videoio"]}
 
 
 
