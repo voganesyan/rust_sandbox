@@ -16,4 +16,8 @@ impl CustomPaintable {
     pub fn new() -> Self {
         glib::Object::new(&[]).expect("Failed to create a CustomPaintable")
     }
+
+    pub fn set_image(&self) {
+        println!("set_image");
+    }
 }

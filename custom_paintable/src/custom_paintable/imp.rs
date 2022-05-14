@@ -29,6 +29,7 @@ impl PaintableImpl for CustomPaintable {
     }
 
     fn snapshot(&self, _paintable: &Self::Type, snapshot: &gdk::Snapshot, width: f64, height: f64) {
+        println!("snapshot");
         let snapshot = snapshot.downcast_ref::<gtk::Snapshot>().unwrap();
         // Draw a linear gradient
         snapshot.append_linear_gradient(
