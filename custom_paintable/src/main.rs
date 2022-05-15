@@ -28,13 +28,6 @@ fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
 
 
 fn main() {
-    let shared_frame = Arc::new(Mutex::new(Mat::default()));
-    let shared_frame_clone = shared_frame.clone();
-    let handle = thread::spawn(move || {
-        start_reading_frames(shared_frame_clone).unwrap();
-    });
-    //handle.join().unwrap();
-
     let application = gtk::Application::new(
         Some("com.github.gtk-rs.examples.paintable"),
         Default::default(),
@@ -44,6 +37,13 @@ fn main() {
 }
 
 fn build_ui(application: &gtk::Application) {
+    let shared_frame = Arc::new(Mutex::new(Mat::default()));
+    let shared_frame_clone = shared_frame.clone();
+    let _handle = thread::spawn(move || {
+        start_reading_frames(shared_frame_clone).unwrap();
+    });
+    //handle.join().unwrap();
+
     let window = gtk::ApplicationWindow::new(application);
     window.set_title(Some("Custom Paintable"));
     window.set_default_size(500, 500);
