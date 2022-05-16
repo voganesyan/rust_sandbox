@@ -1,7 +1,8 @@
 use gtk::cairo::{Context, Operator};
 use gtk::prelude::{
-    BoxExt, DrawingAreaExt, GestureSingleExt, GtkWindowExt, OrientableExt, WidgetExt,
+    BoxExt, GestureSingleExt, GtkWindowExt, OrientableExt, WidgetExt,
 };
+use gtk::glib;
 use relm4::{gtk, send, AppUpdate, Model, RelmApp, Sender, WidgetPlus, Widgets};
 
 use std::sync::{Arc, Mutex};
@@ -22,20 +23,18 @@ fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
         let mut image = shared_frame.lock().unwrap();
         *image = frame;
     }
-    Ok(())
 }
 
 enum AppMsg {
     AddPoint((f64, f64)),
+    UpdateImage,
     Reset,
-    Resize((i32, i32)),
 }
 
 struct AppModel {
-    width: f64,
-    height: f64,
     points: Vec<Point>,
     reset: bool,
+    image: Arc<Mutex<Mat>>
 }
 
 impl Model for AppModel {
@@ -51,12 +50,11 @@ impl AppUpdate for AppModel {
             AppMsg::AddPoint((x, y)) => {
                 self.points.push(Point::new(x, y));
             }
-            AppMsg::Resize((x, y)) => {
-                self.width = x as f64;
-                self.height = y as f64;
+            AppMsg::UpdateImage => {
+                println!("UpdateImage");
             }
             AppMsg::Reset => {
-                self.reset = true;
+                self.points.clear();
             }
         }
         true
@@ -135,9 +133,6 @@ impl Widgets<AppModel, ()> for AppWidgets {
                   send!(sender, AppMsg::AddPoint((x, y)));
                 }
               }
-            },
-            connect_resize(sender) => move |_, x, y| {
-              send!(sender, AppMsg::Resize((x, y)))
             }
           },
         }
@@ -146,17 +141,22 @@ impl Widgets<AppModel, ()> for AppWidgets {
 
     additional_fields! {
         handler: relm4::drawing::DrawHandler,
-        image: Arc<Mutex<Mat>>
     }
 
     fn post_init() {
         let mut handler = relm4::drawing::DrawHandler::new().unwrap();
         handler.init(&area);
 
-        let image = Arc::new(Mutex::new(Mat::default()));
-        let image_clone = image.clone();
+        // Start reading video stream
+        let image = model.image.clone();
         std::thread::spawn(move || {
-            start_reading_frames(image_clone).unwrap();
+            start_reading_frames(image).unwrap();
+        });
+
+        // Start updating displayed image every second
+        glib::timeout_add_seconds_local(1, move || {
+            send!(sender, AppMsg::UpdateImage);
+            glib::Continue(true)
         });
     }
 
@@ -173,10 +173,9 @@ impl Widgets<AppModel, ()> for AppWidgets {
 
 fn main() {
     let model = AppModel {
-        width: 100.0,
-        height: 100.0,
         points: Vec::new(),
         reset: false,
+        image: Arc::new(Mutex::new(Mat::default()))
     };
     let relm = RelmApp::new(model);
     relm.run();
