@@ -7,7 +7,7 @@ use gtk::glib;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use opencv::{imgproc::*, prelude::*, videoio, Result};
+use opencv::{prelude::*, videoio, Result};
 
 
 fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
@@ -61,10 +61,12 @@ fn build_ui(application: &gtk::Application) {
     // we are using a closure to capture the label (else we could also use a normal function)
     let tick = move || {
         println!("time");
+        let frame = shared_frame.lock().unwrap();
+        println!("Get Frame: {}", frame.size().unwrap().width);
 
         // let time = current_time();
         // label.set_text(&time);
-        paintable.set_image();
+        paintable.set_image(*frame);
 
         // Now we need to tell all listeners that we've changed out contents
         // so that they can redraw this paintable.
