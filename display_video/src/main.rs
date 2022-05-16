@@ -4,9 +4,29 @@ use gtk::prelude::{
 };
 use relm4::{gtk, send, AppUpdate, Model, RelmApp, Sender, WidgetPlus, Widgets};
 
+use std::sync::{Arc, Mutex};
+
+use opencv::{prelude::*, videoio, Result};
+
+
+fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
+    let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
+    let opened = videoio::VideoCapture::is_opened(&cam)?;
+    if !opened {
+        panic!("Unable to open default camera!");
+    }
+    loop {
+        let mut frame = Mat::default();
+        cam.read(&mut frame)?;
+        println!("Read Frame: {}", frame.size().unwrap().width);
+        let mut image = shared_frame.lock().unwrap();
+        *image = frame;
+    }
+    Ok(())
+}
+
 enum AppMsg {
     AddPoint((f64, f64)),
-    UpdatePoints,
     Reset,
     Resize((i32, i32)),
 }
@@ -31,26 +51,6 @@ impl AppUpdate for AppModel {
             AppMsg::AddPoint((x, y)) => {
                 self.points.push(Point::new(x, y));
             }
-            AppMsg::UpdatePoints => {
-                for point in &mut self.points {
-                    let Point { x, y, .. } = point;
-                    if *x < 0.0 {
-                        point.xs = point.xs.abs();
-                    } else if *x > self.width {
-                        point.xs = -point.xs.abs();
-                    }
-                    *x = x.clamp(0.0, self.width);
-                    *x += point.xs;
-
-                    if *y < 0.0 {
-                        point.ys = point.ys.abs();
-                    } else if *y > self.height {
-                        point.ys = -point.ys.abs();
-                    }
-                    *y = y.clamp(0.0, self.height);
-                    *y += point.ys;
-                }
-            }
             AppMsg::Resize((x, y)) => {
                 self.width = x as f64;
                 self.height = y as f64;
@@ -66,19 +66,14 @@ impl AppUpdate for AppModel {
 struct Point {
     x: f64,
     y: f64,
-    xs: f64,
-    ys: f64,
     color: Color,
 }
 
 impl Point {
     fn new(x: f64, y: f64) -> Point {
-        let angle: f64 = rand::random::<f64>() * std::f64::consts::PI * 2.0;
         Point {
             x,
             y,
-            xs: angle.sin() * 7.0,
-            ys: angle.cos() * 7.0,
             color: Color::random(),
         }
     }
@@ -150,16 +145,18 @@ impl Widgets<AppModel, ()> for AppWidgets {
     }
 
     additional_fields! {
-        handler: relm4::drawing::DrawHandler
+        handler: relm4::drawing::DrawHandler,
+        image: Arc<Mutex<Mat>>
     }
 
     fn post_init() {
         let mut handler = relm4::drawing::DrawHandler::new().unwrap();
         handler.init(&area);
 
-        std::thread::spawn(move || loop {
-            std::thread::sleep(std::time::Duration::from_millis(20));
-            send!(sender, AppMsg::UpdatePoints);
+        let image = Arc::new(Mutex::new(Mat::default()));
+        let image_clone = image.clone();
+        std::thread::spawn(move || {
+            start_reading_frames(image_clone).unwrap();
         });
     }
 
