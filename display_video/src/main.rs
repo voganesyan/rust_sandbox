@@ -27,13 +27,11 @@ fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
 
 enum AppMsg {
     AddPoint((f64, f64)),
-    UpdateImage,
-    Reset,
+    ClearPoints,
 }
 
 struct AppModel {
     points: Vec<Point>,
-    reset: bool,
     image: Arc<Mutex<Mat>>
 }
 
@@ -45,15 +43,11 @@ impl Model for AppModel {
 
 impl AppUpdate for AppModel {
     fn update(&mut self, msg: AppMsg, _components: &(), _sender: Sender<AppMsg>) -> bool {
-        self.reset = false;
         match msg {
             AppMsg::AddPoint((x, y)) => {
                 self.points.push(Point::new(x, y));
             }
-            AppMsg::UpdateImage => {
-                println!("UpdateImage");
-            }
-            AppMsg::Reset => {
+            AppMsg::ClearPoints => {
                 self.points.clear();
             }
         }
@@ -94,6 +88,12 @@ impl Color {
 }
 
 fn draw(cx: &Context, points: &[Point]) {
+    println!("Draw");
+    cx.set_operator(Operator::Clear);
+    cx.set_source_rgba(0.0, 0.0, 0.0, 0.0);
+    cx.paint().expect("Couldn't fill context");
+
+    cx.set_operator(Operator::Source);
     for pt in points {
         let c = &pt.color;
         cx.set_source_rgb(c.r, c.g, c.b);
@@ -123,7 +123,7 @@ impl Widgets<AppModel, ()> for AppWidgets {
               set_button: 0,
               connect_pressed(sender) => move |controller, _, x, y| {
                 if controller.current_button() == gtk::gdk::BUTTON_SECONDARY {
-                  send!(sender, AppMsg::Reset);
+                  send!(sender, AppMsg::ClearPoints);
                 } else {
                   send!(sender, AppMsg::AddPoint((x, y)));
                 }
@@ -149,20 +149,13 @@ impl Widgets<AppModel, ()> for AppWidgets {
         });
 
         // Start updating displayed image every second
-        glib::timeout_add_seconds_local(1, move || {
-            send!(sender, AppMsg::UpdateImage);
-            glib::Continue(true)
-        });
+        // glib::timeout_add_seconds_local(1, move || {
+        //     glib::Continue(true)
+        // });
     }
 
     fn pre_view() {
         let cx = self.handler.get_context().unwrap();
-        println!("Preview");
-        if model.reset {
-            cx.set_operator(Operator::Clear);
-            cx.set_source_rgba(0.0, 0.0, 0.0, 0.0);
-            cx.paint().expect("Couldn't fill context");
-        }
         draw(&cx, &model.points);
     }
 }
@@ -170,7 +163,6 @@ impl Widgets<AppModel, ()> for AppWidgets {
 fn main() {
     let model = AppModel {
         points: Vec::new(),
-        reset: false,
         image: Arc::new(Mutex::new(Mat::default()))
     };
     let relm = RelmApp::new(model);
