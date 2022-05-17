@@ -94,15 +94,10 @@ impl Color {
 }
 
 fn draw(cx: &Context, points: &[Point]) {
-    for point in points {
-        let Point {
-            x,
-            y,
-            color: Color { r, g, b },
-            ..
-        } = *point;
-        cx.set_source_rgb(r, g, b);
-        cx.arc(x, y, 10.0, 0.0, std::f64::consts::PI * 2.0);
+    for pt in points {
+        let c = &pt.color;
+        cx.set_source_rgb(c.r, c.g, c.b);
+        cx.arc(pt.x, pt.y, 10.0, 0.0, std::f64::consts::PI * 2.0);
         cx.fill().expect("Couldn't fill arc");
     }
 }
@@ -162,6 +157,7 @@ impl Widgets<AppModel, ()> for AppWidgets {
 
     fn pre_view() {
         let cx = self.handler.get_context().unwrap();
+        println!("Preview");
         if model.reset {
             cx.set_operator(Operator::Clear);
             cx.set_source_rgba(0.0, 0.0, 0.0, 0.0);
