@@ -3,6 +3,8 @@ use gtk::prelude::{
     BoxExt, GestureSingleExt, GtkWindowExt, OrientableExt, WidgetExt,
 };
 use gtk::glib;
+use gtk::cairo;
+use opencv::core::Vec3b;
 use relm4::{gtk, send, AppUpdate, Model, RelmApp, Sender, WidgetPlus, Widgets};
 
 use std::sync::{Arc, Mutex};
@@ -87,14 +89,41 @@ impl Color {
     }
 }
 
-fn draw(cx: &Context, points: &[Point]) {
-    println!("Draw");
+fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Error> {
+    let height = image.rows();
+    let width = image.cols();
+    let mut surface = gtk::cairo::ImageSurface::create(
+        cairo::Format::Rgb24, width, height).unwrap();
+    let mut surf_data = surface.data().unwrap();
+
+    for it in image.iter::<Vec3b>().unwrap().zip(surf_data.chunks_mut(4)) {
+        let (src, dst) = it;
+        // println!("{:?} {:?}", src, dst);
+        let src = src.1;
+        dst[0] = src[0];
+        dst[1] = src[1];
+        dst[2] = src[2];
+    }
+    drop(surf_data);
+    Ok(surface)
+}
+
+fn draw(cx: &Context, model: &AppModel) {
+    // Clear context
     cx.set_operator(Operator::Clear);
     cx.set_source_rgba(0.0, 0.0, 0.0, 0.0);
     cx.paint().expect("Couldn't fill context");
 
+    // Draw image
     cx.set_operator(Operator::Source);
-    for pt in points {
+    let image = model.image.lock().unwrap();
+    let surface = cv_mat_to_cairo_surface(&image).unwrap();
+    cx.set_source_surface(&surface, 10.0, 10.0).unwrap();
+    cx.paint().unwrap();
+
+    // Draw points
+    cx.set_operator(Operator::Source);
+    for pt in &model.points {
         let c = &pt.color;
         cx.set_source_rgb(c.r, c.g, c.b);
         cx.arc(pt.x, pt.y, 10.0, 0.0, std::f64::consts::PI * 2.0);
@@ -156,7 +185,7 @@ impl Widgets<AppModel, ()> for AppWidgets {
 
     fn pre_view() {
         let cx = self.handler.get_context().unwrap();
-        draw(&cx, &model.points);
+        draw(&cx, &model);
     }
 }
 
