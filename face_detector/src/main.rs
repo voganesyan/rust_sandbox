@@ -2,6 +2,26 @@ use gtk::{glib, gdk};
 use gtk::prelude::*;
 use gtk;
 
+use opencv::core::Vec3b;
+use opencv::{prelude::*, videoio, Result};
+use std::sync::{Arc, Mutex};
+
+
+fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
+    let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
+    let opened = videoio::VideoCapture::is_opened(&cam)?;
+    if !opened {
+        panic!("Unable to open default camera!");
+    }
+    loop {
+        let mut frame = Mat::default();
+        cam.read(&mut frame)?;
+        println!("Read Frame: {}", frame.size().unwrap().width);
+        let mut image = shared_frame.lock().unwrap();
+        *image = frame;
+    }
+}
+
 fn main() {
     let application =
         gtk::Application::new(None, Default::default());
@@ -25,6 +45,13 @@ fn build_ui(application: &gtk::Application) {
     window.set_child(Some(&picture));
 
     window.show();
+
+    // Start reading video stream
+    let image = Arc::new(Mutex::new(Mat::default()));
+    let image = image.clone();
+    std::thread::spawn(move || {
+        start_reading_frames(image).unwrap();
+    });
 
     // we are using a closure to capture the label (else we could also use a normal function)
     let tick = move || {
