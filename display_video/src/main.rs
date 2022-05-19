@@ -1,15 +1,15 @@
 use gtk::cairo::{Context, Operator};
 use gtk::prelude::{
-    BoxExt, GestureSingleExt, GtkWindowExt, OrientableExt, WidgetExt,
+    BoxExt, DrawingAreaExt, GestureSingleExt, GtkWindowExt, OrientableExt, WidgetExt,
 };
+use relm4::{gtk, send, AppUpdate, Model, RelmApp, Sender, WidgetPlus, Widgets};
 use gtk::glib;
 use gtk::cairo;
-use opencv::core::Vec3b;
-use relm4::{gtk, send, AppUpdate, Model, RelmApp, Sender, WidgetPlus, Widgets};
 
 use std::sync::{Arc, Mutex};
 
-use opencv::{prelude::*, videoio, Result};
+use opencv::core::Vec3b;
+use opencv::{prelude::*, core, imgproc, videoio, Result};
 
 
 fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
@@ -30,10 +30,13 @@ fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
 enum AppMsg {
     AddPoint((f64, f64)),
     ClearPoints,
-    UpdateDisplayedImage
+    UpdateDisplayedImage,
+    Resize((i32, i32))
 }
 
 struct AppModel {
+    width: i32,
+    height: i32,
     points: Vec<Point>,
     image: Arc<Mutex<Mat>>
 }
@@ -52,6 +55,10 @@ impl AppUpdate for AppModel {
             }
             AppMsg::ClearPoints => {
                 self.points.clear();
+            }
+            AppMsg::Resize((width, height)) => {
+                self.width = width;
+                self.height = height;
             }
             _ => {}
         }
@@ -120,7 +127,10 @@ fn draw(cx: &Context, model: &AppModel) {
     cx.set_operator(Operator::Source);
     let image = model.image.lock().unwrap();
     if !image.empty() {
-        let surface = cv_mat_to_cairo_surface(&image).unwrap();
+        let size = core::Size::new(model.width, model.height);
+        let mut small_image = Mat::default();
+        imgproc::resize(&*image, &mut small_image, size, 0.0, 0.0, imgproc::INTER_LINEAR).unwrap();
+        let surface = cv_mat_to_cairo_surface(&small_image).unwrap();
         cx.set_source_surface(&surface, 0.0, 0.0).unwrap();
         cx.paint().unwrap();
     }
@@ -161,6 +171,9 @@ impl Widgets<AppModel, ()> for AppWidgets {
                   send!(sender, AppMsg::AddPoint((x, y)));
                 }
               }
+            },
+            connect_resize(sender) => move |_, x, y| {
+              send!(sender, AppMsg::Resize((x, y)))
             }
           },
         }
@@ -196,6 +209,8 @@ impl Widgets<AppModel, ()> for AppWidgets {
 
 fn main() {
     let model = AppModel {
+        width: 100,
+        height: 100,
         points: Vec::new(),
         image: Arc::new(Mutex::new(Mat::default()))
     };
