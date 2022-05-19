@@ -121,7 +121,7 @@ fn draw(cx: &Context, model: &AppModel) {
     let image = model.image.lock().unwrap();
     if !image.empty() {
         let surface = cv_mat_to_cairo_surface(&image).unwrap();
-        cx.set_source_surface(&surface, 10.0, 10.0).unwrap();
+        cx.set_source_surface(&surface, 0.0, 0.0).unwrap();
         cx.paint().unwrap();
     }
 
