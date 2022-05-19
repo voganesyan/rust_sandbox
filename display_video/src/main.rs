@@ -95,7 +95,7 @@ fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Er
     let mut surface = gtk::cairo::ImageSurface::create(
         cairo::Format::Rgb24, width, height).unwrap();
     let mut surf_data = surface.data().unwrap();
-
+    // We pass chunks_mut = 4, because cairo::Format::Rgb24 is actually RgbA32 with unused alpha-channel
     for it in image.iter::<Vec3b>().unwrap().zip(surf_data.chunks_mut(4)) {
         let (src, dst) = it;
         // println!("{:?} {:?}", src, dst);
