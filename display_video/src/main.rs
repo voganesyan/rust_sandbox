@@ -30,6 +30,7 @@ fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
 enum AppMsg {
     AddPoint((f64, f64)),
     ClearPoints,
+    UpdateDisplayedImage
 }
 
 struct AppModel {
@@ -52,6 +53,7 @@ impl AppUpdate for AppModel {
             AppMsg::ClearPoints => {
                 self.points.clear();
             }
+            _ => {}
         }
         true
     }
@@ -117,9 +119,11 @@ fn draw(cx: &Context, model: &AppModel) {
     // Draw image
     cx.set_operator(Operator::Source);
     let image = model.image.lock().unwrap();
-    let surface = cv_mat_to_cairo_surface(&image).unwrap();
-    cx.set_source_surface(&surface, 10.0, 10.0).unwrap();
-    cx.paint().unwrap();
+    if !image.empty() {
+        let surface = cv_mat_to_cairo_surface(&image).unwrap();
+        cx.set_source_surface(&surface, 10.0, 10.0).unwrap();
+        cx.paint().unwrap();
+    }
 
     // Draw points
     cx.set_operator(Operator::Source);
@@ -178,9 +182,10 @@ impl Widgets<AppModel, ()> for AppWidgets {
         });
 
         // Start updating displayed image every second
-        // glib::timeout_add_seconds_local(1, move || {
-        //     glib::Continue(true)
-        // });
+        glib::timeout_add_seconds_local(1, move || {
+            send!(sender, AppMsg::UpdateDisplayedImage);
+            glib::Continue(true)
+        });
     }
 
     fn pre_view() {
