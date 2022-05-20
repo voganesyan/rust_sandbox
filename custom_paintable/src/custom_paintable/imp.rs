@@ -2,12 +2,13 @@ use gtk::prelude::*;
 use gtk::subclass::prelude::*;
 use gtk::{gdk, glib, graphene, cairo};
 use once_cell::sync::Lazy;
+use std::cell::RefCell;
 use glib::{BindingFlags, ParamFlags, ParamSpec, ParamSpecObject, Value};
 
 
 #[derive(Default)]
 pub struct CustomPaintable {
-    pub image: RefCell<Option<cairo::ImageSurface>
+    pub image: RefCell<Option<cairo::ImageSurface>>
 }
 
 // The central trait for subclassing a GObject
@@ -17,6 +18,35 @@ impl ObjectSubclass for CustomPaintable {
     type Type = super::CustomPaintable;
     type Interfaces = (gdk::Paintable,);
 }
+
+impl CustomPaintable {
+    pub(super) fn image(&self, _obj: &super::CustomPaintable) -> Option<gtk::Widget> {
+        self.image.borrow().clone()
+    }
+
+    pub(super) fn set_image(
+        &self,
+        obj: &super::CustomPaintable,
+        widget: Option<&impl IsA<cairo::ImageSurface>>,
+    ) {
+        let widget = widget.map(|w| w.upcast_ref());
+        if widget == self.image.borrow().as_ref() {
+            return;
+        }
+
+        if let Some(image) = self.image.borrow_mut().take() {
+            image.unparent();
+        }
+
+        if let Some(w) = widget {
+            self.image.replace(Some(w.clone()));
+            w.set_parent(obj);
+        }
+
+        obj.queue_resize();
+        obj.notify("image")
+    }
+
 
 // Trait shared by all GObjects
 impl ObjectImpl for CustomPaintable {

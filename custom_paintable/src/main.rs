@@ -23,7 +23,6 @@ fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
         let mut image = shared_frame.lock().unwrap();
         *image = frame;
     }
-    Ok(())
 }
 
 
@@ -66,7 +65,7 @@ fn build_ui(application: &gtk::Application) {
 
         // let time = current_time();
         // label.set_text(&time);
-        paintable.set_image(*frame);
+        // paintable.set_image(*frame);
 
         // Now we need to tell all listeners that we've changed out contents
         // so that they can redraw this paintable.
