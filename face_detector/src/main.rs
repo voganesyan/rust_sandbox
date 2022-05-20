@@ -7,8 +7,10 @@ use std::time::Duration;
 use std::sync::{Arc, Mutex};
 
 use opencv::core::Vec3b;
-use opencv::{prelude::*, core, imgproc, videoio, Result};
-
+use opencv::{prelude::*, core, imgproc, videoio, imgcodecs, Result};
+mod face_detector {
+    pub mod face_detector;
+}
 
 fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
     let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
@@ -44,6 +46,8 @@ fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Er
 }
 
 fn main() {
+    let img = imgcodecs::imread("/home/vitaliy/Documents/rust_sandbox/face_detector/src/face_detector/data/sample.png", imgcodecs::IMREAD_COLOR).unwrap();
+    face_detector::face_detector::detect(img).unwrap();
     let application =
         gtk::Application::new(None, Default::default());
     application.connect_activate(build_ui);
@@ -86,7 +90,7 @@ fn build_ui(application: &gtk::Application) {
     window.set_child(Some(&drawing_area));
     window.show();
 
-    glib::timeout_add_local(Duration::from_millis(50), move || {
+    glib::timeout_add_local(Duration::from_millis(30), move || {
         drawing_area.queue_draw();
         glib::Continue(true)
     });
