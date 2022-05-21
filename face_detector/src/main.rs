@@ -5,9 +5,7 @@ use std::time::Duration;
 
 use opencv::core::Vec3b;
 use opencv::{core, imgproc, prelude::*, videoio, Result};
-mod face_detector {
-    pub mod face_detector;
-}
+mod face_detector;
 
 fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
     let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
@@ -17,7 +15,7 @@ fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
     }
 
     // Create detector
-    let detector = face_detector::face_detector::Detector::new().unwrap();
+    let detector = face_detector::Detector::new("/home/vitaliy/Documents/rust_sandbox/face_detector/src/data/mobilenetv3").unwrap();
 
     loop {
         // Read frame

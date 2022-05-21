@@ -38,8 +38,7 @@ pub struct Detector {
 }
 
 impl Detector {
-    pub fn new() -> Result<Detector, Box<dyn Error>> {
-        let export_dir = "/home/vitaliy/Documents/rust_sandbox/face_detector/src/face_detector/data/mobilenetv3";
+    pub fn new(export_dir: &str) -> Result<Detector, Box<dyn Error>> {
         let model_file: PathBuf = [export_dir, "saved_model.pb"].iter().collect();
         if !model_file.exists() {
             return Err(Box::new(
