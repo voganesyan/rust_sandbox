@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 gtk = { version = "0.4", package = "gtk4" }
-opencv = { version = "0.63", default-features = false, features = ["imgproc", "videoio", "imgcodecs"]}
+opencv = { version = "0.63", default-features = false, features = ["imgproc", "videoio"]}
 tensorflow = { version = "0.18", features = ["eager"] }
 
 

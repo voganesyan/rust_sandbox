@@ -7,7 +7,7 @@ use std::time::Duration;
 use std::sync::{Arc, Mutex};
 
 use opencv::core::Vec3b;
-use opencv::{prelude::*, core, imgproc, videoio, imgcodecs, Result};
+use opencv::{prelude::*, core, imgproc, videoio, Result};
 mod face_detector {
     pub mod face_detector;
 }
@@ -18,10 +18,20 @@ fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
     if !opened {
         panic!("Unable to open default camera!");
     }
+
+    // Create detector
+    let detector = face_detector::face_detector::Detector::new().unwrap();
+
     loop {
+        // Read frame
         let mut frame = Mat::default();
         cam.read(&mut frame)?;
         println!("Read Frame: {}", frame.size().unwrap().width);
+
+        // Detect
+        println!("{}", detector.detect(&frame).unwrap());
+
+        // Update shared image
         let mut image = shared_frame.lock().unwrap();
         *image = frame;
     }
@@ -46,9 +56,6 @@ fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Er
 }
 
 fn main() {
-    let img = imgcodecs::imread("/home/vitaliy/Documents/rust_sandbox/face_detector/src/face_detector/data/sample.png", imgcodecs::IMREAD_COLOR).unwrap();
-    let detector = face_detector::face_detector::Detector::new().unwrap();
-    println!("{}", detector.detect(&img).unwrap());
     let application =
         gtk::Application::new(None, Default::default());
     application.connect_activate(build_ui);

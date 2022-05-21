@@ -14,17 +14,18 @@ use tensorflow::eager;
 
 use opencv::{prelude::*, core::*, imgproc};
 
-pub fn cv_mat_to_tf_tensor(image: &Mat) -> Tensor::<f32> {
-    println!("normalized {:?}" , image.size());
+fn cv_mat_to_tf_tensor(image: &Mat) -> Tensor::<f32> {
+    let rows = image.rows();
+    let cols = image.cols();
     let mut normalized = Mat::default();
-    image.convert_to(&mut normalized, CV_32FC3, 1.0 / 1.0, 0.0).unwrap(); 
+    image.convert_to(&mut normalized, CV_32FC3, 1.0, 0.0).unwrap(); 
     // where normalized is an opencv matrix already converted to floating point and normalized to 0..1.
-    let mut input_tensor = Tensor::<f32>::new(&[1, 224, 224, 3]);
+    let mut input_tensor = Tensor::<f32>::new(&[1, rows as u64, cols as u64, 3]);
     let ptr = input_tensor.as_mut_ptr() as *mut std::ffi::c_void;
     let mut input_mat = unsafe {
         Mat::new_rows_cols_with_data(
-            224,
-            224,
+            rows,
+            cols,
             opencv::core::CV_32FC3,
             ptr,
             Mat_AUTO_STEP,
@@ -91,7 +92,12 @@ impl Detector {
     }
 
     pub fn detect(&self, image: &Mat) -> Result<usize, Box<dyn Error>> {
-        let x = cv_mat_to_tf_tensor(&image);
+        // Scale image
+        let size = Size::new(224, 224);
+        let mut small_image = Mat::default();
+        imgproc::resize(&image, &mut small_image, size, 0.0, 0.0, imgproc::INTER_LINEAR).unwrap();
+
+        let x = cv_mat_to_tf_tensor(&small_image);
     
         // Run the graph.
         let mut args = SessionRunArgs::new();
