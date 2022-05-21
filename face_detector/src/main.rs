@@ -1,4 +1,4 @@
-use gtk::{prelude::*, cairo, glib};
+use gtk::{cairo, glib, prelude::*};
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;

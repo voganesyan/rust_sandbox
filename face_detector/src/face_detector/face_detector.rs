@@ -10,7 +10,6 @@ fn cv_mat_to_tf_tensor(image: &Mat) -> tf::Tensor::<f32> {
     let cols = image.cols();
     let mut normalized = Mat::default();
     image.convert_to(&mut normalized, CV_32FC3, 1.0, 0.0).unwrap(); 
-    // where normalized is an opencv matrix already converted to floating point and normalized to 0..1.
     let mut input_tensor = tf::Tensor::<f32>::new(&[1, rows as u64, cols as u64, 3]);
     let ptr = input_tensor.as_mut_ptr() as *mut std::ffi::c_void;
     let mut input_mat = unsafe {
@@ -89,8 +88,7 @@ impl Detector {
         let mut args = tf::SessionRunArgs::new();
         args.add_feed(&self.op_x, 0, &x);
         let token_output = args.request_fetch(&self.op_output, 0);
-        let session = &self.bundle.session;
-        session.run(&mut args).unwrap();
+        self.bundle.session.run(&mut args).unwrap();
     
         // Check the output.
         let output: tf::Tensor<f32> = args.fetch(token_output)?;
