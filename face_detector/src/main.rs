@@ -47,7 +47,8 @@ fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Er
 
 fn main() {
     let img = imgcodecs::imread("/home/vitaliy/Documents/rust_sandbox/face_detector/src/face_detector/data/sample.png", imgcodecs::IMREAD_COLOR).unwrap();
-    face_detector::face_detector::detect(img).unwrap();
+    let detector = face_detector::face_detector::Detector::new().unwrap();
+    println!("{}", detector.detect(&img).unwrap());
     let application =
         gtk::Application::new(None, Default::default());
     application.connect_activate(build_ui);
