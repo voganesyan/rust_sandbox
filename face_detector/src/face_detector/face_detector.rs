@@ -74,12 +74,7 @@ impl Detector {
         let op_x = graph.operation_by_name_required(&x_info.name().name)?;
         let output_info = signature.get_output("Predictions")?;
         let op_output = graph.operation_by_name_required(&output_info.name().name)?;
-        let detector = Detector { 
-            op_x: op_x,
-            op_output: op_output,
-            bundle: bundle
-        };
-        Ok(detector)
+        Ok(Detector { op_x, op_output, bundle })
     }
 
     pub fn detect(&self, image: &Mat) -> Result<usize, Box<dyn Error>> {

@@ -1,4 +1,3 @@
-use gtk;
 use gtk::{prelude::*, cairo, glib};
 
 use std::sync::{Arc, Mutex};
