@@ -7,28 +7,6 @@ use opencv::core::Vec3b;
 use opencv::{core, imgproc, prelude::*, videoio, Result};
 mod classifier;
 
-fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
-    let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
-    if !cam.is_opened()? {
-        panic!("Unable to open default camera!");
-    }
-
-    // Create detector
-    let classifier = classifier::Classifier::new("./src/data/mobilenetv3").unwrap();
-
-    loop {
-        // Read frame
-        let mut frame = Mat::default();
-        cam.read(&mut frame)?;
-
-        // Detect
-        println!("{}", classifier.classify(&frame).unwrap());
-
-        // Update shared image
-        let mut image = shared_frame.lock().unwrap();
-        *image = frame;
-    }
-}
 
 fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Error> {
     let height = image.rows();
@@ -54,27 +32,54 @@ fn main() {
 }
 
 fn build_ui(application: &gtk::Application) {
-    // Start reading video stream
-    let image = Arc::new(Mutex::new(Mat::default()));
-    let image_clone = image.clone();
+    // Open video stream (0 is the default camera)
+    let mut capture = videoio::VideoCapture::new(0, videoio::CAP_ANY).unwrap();
+    if !capture.is_opened().unwrap() {
+        panic!("Unable to open default camera!");
+    }
+
+    // Create classifier
+    let classifier = classifier::Classifier::new("./src/data/mobilenetv3").unwrap();
+
+    // Create data for sharing between GUI and background threads
+    let context = Arc::new(Mutex::new(Mat::default()));
+
+    // Start background thread with reading video stream and classifying images
+    let context_clone = context.clone();
     std::thread::spawn(move || {
-        start_reading_frames(image_clone).unwrap();
+        loop {
+            // Read frame
+            let mut frame = Mat::default();
+            capture.read(&mut frame).unwrap();
+    
+            // Classify frame
+            println!("{}", classifier.classify(&frame).unwrap());
+    
+            // Update shared data
+            let mut image = context_clone.lock().unwrap();
+            *image = frame;
+        }
     });
 
+    // Create application window
     let window = gtk::ApplicationWindow::new(application);
     window.set_title(Some("Face Detector"));
     window.set_default_size(500, 500);
 
+    // Create drawing area
     let drawing_area = gtk::DrawingArea::new();
+    window.set_child(Some(&drawing_area));
+
+    // Implement drawing function
     drawing_area.set_draw_func(move |_, cx, width, height| {
-        // Clear context
+        // Clear cairo context
         cx.set_operator(cairo::Operator::Clear);
         cx.set_source_rgba(0.0, 0.0, 0.0, 0.0);
         cx.paint().expect("Couldn't fill context");
 
         // Draw image
         cx.set_operator(cairo::Operator::Source);
-        let image = image.lock().unwrap();
+        let image = context.lock().unwrap();
         if !image.empty() {
             let size = core::Size::new(width, height);
             let mut small_image = Mat::default();
@@ -93,9 +98,10 @@ fn build_ui(application: &gtk::Application) {
         }
     });
 
-    window.set_child(Some(&drawing_area));
+    // Show window
     window.show();
 
+    // Redraw drawing area every 30 milliseconds
     glib::timeout_add_local(Duration::from_millis(30), move || {
         drawing_area.queue_draw();
         glib::Continue(true)
