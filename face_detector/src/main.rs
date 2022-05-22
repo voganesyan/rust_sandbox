@@ -7,6 +7,11 @@ use opencv::core::Vec3b;
 use opencv::{core, imgproc, prelude::*, videoio, Result};
 mod classifier;
 
+struct ProcessingContext {
+    image: Mat,
+    class: String
+}
+
 
 fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Error> {
     let height = image.rows();
@@ -42,7 +47,11 @@ fn build_ui(application: &gtk::Application) {
     let classifier = classifier::Classifier::new("./src/data/mobilenetv3").unwrap();
 
     // Create data for sharing between GUI and background threads
-    let context = Arc::new(Mutex::new(Mat::default()));
+    let context = Arc::new(Mutex::new(
+        ProcessingContext{
+        image: Mat::default(),
+        class: String::from("none")
+    }));
 
     // Start background thread with reading video stream and classifying images
     let context_clone = context.clone();
@@ -53,11 +62,12 @@ fn build_ui(application: &gtk::Application) {
             capture.read(&mut frame).unwrap();
     
             // Classify frame
-            println!("{}", classifier.classify(&frame).unwrap());
+            let class = classifier.classify(&frame).unwrap();
     
-            // Update shared data
-            let mut image = context_clone.lock().unwrap();
-            *image = frame;
+            // Update shared context
+            let mut context = context_clone.lock().unwrap();
+            context.image = frame;
+            context.class = String::from(class);
         }
     });
 
@@ -79,12 +89,13 @@ fn build_ui(application: &gtk::Application) {
 
         // Draw image
         cx.set_operator(cairo::Operator::Source);
-        let image = context.lock().unwrap();
+        let context = context.lock().unwrap();
+        let image = &context.image;
         if !image.empty() {
             let size = core::Size::new(width, height);
             let mut small_image = Mat::default();
             imgproc::resize(
-                &*image,
+                image,
                 &mut small_image,
                 size,
                 0.0,
@@ -96,6 +107,7 @@ fn build_ui(application: &gtk::Application) {
             cx.set_source_surface(&surface, 0.0, 0.0).unwrap();
             cx.paint().unwrap();
         }
+        println!("{}", &context.class);
     });
 
     // Show window
