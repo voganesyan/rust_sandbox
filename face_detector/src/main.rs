@@ -109,15 +109,19 @@ fn build_ui(application: &gtk::Application) {
                 scale_factor,
                 scale_factor,
                 imgproc::INTER_LINEAR,
-            )
-            .unwrap();
+            ).unwrap();
             let surface = cv_mat_to_cairo_surface(&small_image).unwrap();
             let x_shift = (width - small_image.cols()) / 2;
             let y_shift = (height - small_image.rows()) / 2;
             cx.set_source_surface(&surface, x_shift as f64, y_shift as f64).unwrap();
             cx.paint().unwrap();
+
+            // Draw class label
+            cx.set_font_size(50.0 * scale_factor);
+            cx.set_source_rgb(0.8, 0.1, 0.8);
+            cx.move_to(5.0, height as f64 - 5.0);
+            cx.show_text(&context.class).unwrap(); 
         }
-        println!("{}", &context.class);
     });
 
     // Show window
