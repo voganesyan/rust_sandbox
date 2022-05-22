@@ -32,15 +32,15 @@ fn cv_mat_to_tf_tensor(image: &Mat) -> tf::Tensor::<f32> {
 } 
 
 
-pub struct Detector {
+pub struct Classifier {
     op_x: tf::Operation,
     op_output: tf::Operation,
     bundle: tf::SavedModelBundle,
     classes: ImageNetClasses
 }
 
-impl Detector {
-    pub fn new(export_dir: &str) -> Result<Detector, Box<dyn Error>> {
+impl Classifier {
+    pub fn new(export_dir: &str) -> Result<Classifier, Box<dyn Error>> {
         let model_file: PathBuf = [export_dir, "saved_model.pb"].iter().collect();
         if !model_file.exists() {
             return Err(Box::new(
@@ -80,10 +80,10 @@ impl Detector {
         let json_string = std::fs::read_to_string(class_file).unwrap();
         let classes: ImageNetClasses = serde_json::from_str(&json_string).unwrap();
 
-        Ok(Detector { op_x, op_output, bundle, classes })
+        Ok(Classifier { op_x, op_output, bundle, classes })
     }
 
-    pub fn detect(&self, image: &Mat) -> Result<&str, Box<dyn Error>> {
+    pub fn classify(&self, image: &Mat) -> Result<&str, Box<dyn Error>> {
         // Scale image
         let size = Size::new(224, 224);
         let mut small_image = Mat::default();

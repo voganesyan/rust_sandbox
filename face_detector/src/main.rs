@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use opencv::core::Vec3b;
 use opencv::{core, imgproc, prelude::*, videoio, Result};
-mod face_detector;
+mod classifier;
 
 fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
     let mut cam = videoio::VideoCapture::new(0, videoio::CAP_ANY)?; // 0 is the default camera
@@ -14,7 +14,7 @@ fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
     }
 
     // Create detector
-    let detector = face_detector::Detector::new("./src/data/mobilenetv3").unwrap();
+    let classifier = classifier::Classifier::new("./src/data/mobilenetv3").unwrap();
 
     loop {
         // Read frame
@@ -22,7 +22,7 @@ fn start_reading_frames(shared_frame: Arc<Mutex<Mat>>) -> Result<()> {
         cam.read(&mut frame)?;
 
         // Detect
-        println!("{}", detector.detect(&frame).unwrap());
+        println!("{}", classifier.classify(&frame).unwrap());
 
         // Update shared image
         let mut image = shared_frame.lock().unwrap();
