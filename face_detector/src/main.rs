@@ -67,7 +67,6 @@ fn build_ui(application: &gtk::Application) {
 
     let drawing_area = gtk::DrawingArea::new();
     drawing_area.set_draw_func(move |_, cx, width, height| {
-        println!("draw {} {}", width, height);
         // Clear context
         cx.set_operator(cairo::Operator::Clear);
         cx.set_source_rgba(0.0, 0.0, 0.0, 0.0);

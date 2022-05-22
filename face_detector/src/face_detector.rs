@@ -4,6 +4,7 @@ use std::result::Result;
 use tensorflow as tf;
 
 use opencv::{prelude::*, core::*, imgproc};
+type ImageNetClasses = std::collections::HashMap<usize, [String; 2]>;
 
 fn cv_mat_to_tf_tensor(image: &Mat) -> tf::Tensor::<f32> {
     let rows = image.rows();
@@ -34,7 +35,8 @@ fn cv_mat_to_tf_tensor(image: &Mat) -> tf::Tensor::<f32> {
 pub struct Detector {
     op_x: tf::Operation,
     op_output: tf::Operation,
-    bundle: tf::SavedModelBundle
+    bundle: tf::SavedModelBundle,
+    classes: ImageNetClasses
 }
 
 impl Detector {
@@ -64,7 +66,7 @@ impl Detector {
         let bundle =
         tf::SavedModelBundle::load(&tf::SessionOptions::new(), &["serve"], &mut graph, export_dir)?;
 
-        // get in/out operations
+        // Get in/out operations
         let signature = bundle
             .meta_graph_def()
             .get_signature(tf::DEFAULT_SERVING_SIGNATURE_DEF_KEY)?;
@@ -72,10 +74,16 @@ impl Detector {
         let op_x = graph.operation_by_name_required(&x_info.name().name)?;
         let output_info = signature.get_output("Predictions")?;
         let op_output = graph.operation_by_name_required(&output_info.name().name)?;
-        Ok(Detector { op_x, op_output, bundle })
+        
+        // Read classes from JSON
+        let class_file: PathBuf = [export_dir, "imagenet_class_index.json"].iter().collect();
+        let json_string = std::fs::read_to_string(class_file).unwrap();
+        let classes: ImageNetClasses = serde_json::from_str(&json_string).unwrap();
+
+        Ok(Detector { op_x, op_output, bundle, classes })
     }
 
-    pub fn detect(&self, image: &Mat) -> Result<usize, Box<dyn Error>> {
+    pub fn detect(&self, image: &Mat) -> Result<&str, Box<dyn Error>> {
         // Scale image
         let size = Size::new(224, 224);
         let mut small_image = Mat::default();
@@ -107,7 +115,7 @@ impl Detector {
     
         // This index is expected to be identical with that of the Python code,
         // but this is not guaranteed due to floating operations.
-        println!("argmax={}", max_idx);
-        Ok(max_idx)
+        let class = &self.classes[&max_idx][1];
+        Ok(class)
     }
 }
