@@ -30,6 +30,14 @@ fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Er
     Ok(surface)
 }
 
+
+fn calc_scale_factor(image_w: i32, image_h: i32, canvas_w: i32, canvas_h: i32) -> f64 {
+    let scale_w = canvas_w as f64 / image_w as f64;
+    let scale_h = canvas_h as f64 / image_h as f64;
+    scale_w.min(scale_h)
+}
+
+
 fn main() {
     let app = gtk::Application::new(None, Default::default());
     app.connect_activate(build_ui);
@@ -92,19 +100,21 @@ fn build_ui(application: &gtk::Application) {
         let context = context.lock().unwrap();
         let image = &context.image;
         if !image.empty() {
-            let size = core::Size::new(width, height);
+            let scale_factor = calc_scale_factor(image.cols(), image.rows(), width, height);
             let mut small_image = Mat::default();
             imgproc::resize(
                 image,
                 &mut small_image,
-                size,
-                0.0,
-                0.0,
+                core::Size::new(0, 0),
+                scale_factor,
+                scale_factor,
                 imgproc::INTER_LINEAR,
             )
             .unwrap();
             let surface = cv_mat_to_cairo_surface(&small_image).unwrap();
-            cx.set_source_surface(&surface, 0.0, 0.0).unwrap();
+            let x_shift = (width - small_image.cols()) / 2;
+            let y_shift = (height - small_image.rows()) / 2;
+            cx.set_source_surface(&surface, x_shift as f64, y_shift as f64).unwrap();
             cx.paint().unwrap();
         }
         println!("{}", &context.class);
