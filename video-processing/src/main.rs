@@ -82,9 +82,32 @@ fn build_ui(application: &gtk::Application) {
     window.set_title(Some("Face Detector"));
     window.set_default_size(500, 500);
 
+    // Create vertical box
+    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    window.set_child(Some(&vbox));
+    
+    // Create top horizontal box
+    let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    vbox.append(&hbox);
+
+
+    // Create processing dropdown
+    let proc_label = gtk::Label::new(Some("RGB to Gray:"));
+    proc_label.set_vexpand(false);
+    let proc_combo = gtk::ComboBoxText::new();
+    proc_combo.set_vexpand(false);
+    proc_combo.append_text("None");
+    proc_combo.append_text("OpenCV");
+    proc_combo.append_text("Own (Sequential)");
+    proc_combo.append_text("Own (Parallel)");
+    proc_combo.set_active(Some(0));
+    hbox.append(&proc_label);
+    hbox.append(&proc_combo);
+
     // Create drawing area
     let drawing_area = gtk::DrawingArea::new();
-    window.set_child(Some(&drawing_area));
+    drawing_area.set_vexpand(true);
+    vbox.append(&drawing_area);
 
     // Implement drawing function
     drawing_area.set_draw_func(move |_, cx, width, height| {
@@ -100,6 +123,7 @@ fn build_ui(application: &gtk::Application) {
         if !image.empty() {
             let scale_factor = calc_scale_factor(image.cols(), image.rows(), width, height);
             let mut small_image = Mat::default();
+            println!("{} {}", width, height);
             imgproc::resize(
                 image,
                 &mut small_image,
