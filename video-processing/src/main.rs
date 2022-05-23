@@ -90,7 +90,7 @@ fn build_ui(application: &gtk::Application) {
     drawing_area.set_draw_func(move |_, cx, width, height| {
         // Clear cairo context
         cx.set_operator(cairo::Operator::Clear);
-        cx.set_source_rgba(0.0, 0.0, 0.0, 0.0);
+        cx.set_source_rgba(0., 0., 0., 0.);
         cx.paint().expect("Couldn't fill context");
 
         // Draw image
@@ -117,9 +117,9 @@ fn build_ui(application: &gtk::Application) {
             cx.paint().unwrap();
 
             // Draw class label
-            cx.set_font_size(50.0 * scale_factor);
+            cx.set_font_size(50. * scale_factor);
             cx.set_source_rgb(0.8, 0.1, 0.8);
-            cx.move_to(5.0, height as f64 - 5.0);
+            cx.move_to(5., height as f64 - 5.);
             cx.show_text(&context.class).unwrap();
         }
     });

@@ -1,4 +1,4 @@
-use opencv::{core::*, imgproc, prelude::*};
+use opencv::{core::*, imgproc};
 use std::error::Error;
 use std::path::PathBuf;
 use std::result::Result;
@@ -10,9 +10,7 @@ fn cv_mat_to_tf_tensor(image: &Mat) -> tf::Tensor<f32> {
     let rows = image.rows();
     let cols = image.cols();
     let mut normalized = Mat::default();
-    image
-        .convert_to(&mut normalized, CV_32FC3, 1.0, 0.0)
-        .unwrap();
+    image.convert_to(&mut normalized, CV_32FC3, 1., 0.).unwrap();
     let mut input_tensor = tf::Tensor::<f32>::new(&[1, rows as u64, cols as u64, 3]);
     let ptr = input_tensor.as_mut_ptr() as *mut std::ffi::c_void;
     let mut input_mat = unsafe {
@@ -91,8 +89,8 @@ impl ImageClassifier {
             &image,
             &mut small_image,
             size,
-            0.0,
-            0.0,
+            0.,
+            0.,
             imgproc::INTER_LINEAR,
         )?;
 
