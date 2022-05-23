@@ -2,9 +2,11 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::result::Result;
 use tensorflow as tf;
-
 use opencv::{prelude::*, core::*, imgproc};
+
+
 type ImageNetClasses = std::collections::HashMap<usize, [String; 2]>;
+
 
 fn cv_mat_to_tf_tensor(image: &Mat) -> tf::Tensor::<f32> {
     let rows = image.rows();
@@ -32,15 +34,16 @@ fn cv_mat_to_tf_tensor(image: &Mat) -> tf::Tensor::<f32> {
 } 
 
 
-pub struct Classifier {
+pub struct ImageClassifier {
     op_x: tf::Operation,
     op_output: tf::Operation,
     bundle: tf::SavedModelBundle,
     classes: ImageNetClasses
 }
 
-impl Classifier {
-    pub fn new(export_dir: &str) -> Result<Classifier, Box<dyn Error>> {
+
+impl ImageClassifier {
+    pub fn new(export_dir: &str) -> Result<ImageClassifier, Box<dyn Error>> {
         let model_file: PathBuf = [export_dir, "saved_model.pb"].iter().collect();
         if !model_file.exists() {
             return Err(Box::new(
@@ -60,7 +63,7 @@ impl Classifier {
         let opts = tf::eager::ContextOptions::new();
         let _ctx = tf::eager::Context::new(opts)?;
     
-        // Load the model.
+        // Load the model
         let mut graph = tf::Graph::new();
 
         let bundle =
@@ -77,17 +80,17 @@ impl Classifier {
         
         // Read classes from JSON
         let class_file: PathBuf = [export_dir, "imagenet_class_index.json"].iter().collect();
-        let json_string = std::fs::read_to_string(class_file).unwrap();
-        let classes: ImageNetClasses = serde_json::from_str(&json_string).unwrap();
+        let json_string = std::fs::read_to_string(class_file)?;
+        let classes: ImageNetClasses = serde_json::from_str(&json_string)?;
 
-        Ok(Classifier { op_x, op_output, bundle, classes })
+        Ok(ImageClassifier { op_x, op_output, bundle, classes })
     }
 
     pub fn classify(&self, image: &Mat) -> Result<&str, Box<dyn Error>> {
         // Scale image
         let size = Size::new(224, 224);
         let mut small_image = Mat::default();
-        imgproc::resize(&image, &mut small_image, size, 0.0, 0.0, imgproc::INTER_LINEAR).unwrap();
+        imgproc::resize(&image, &mut small_image, size, 0.0, 0.0, imgproc::INTER_LINEAR)?;
 
         let x = cv_mat_to_tf_tensor(&small_image);
     
@@ -95,7 +98,7 @@ impl Classifier {
         let mut args = tf::SessionRunArgs::new();
         args.add_feed(&self.op_x, 0, &x);
         let token_output = args.request_fetch(&self.op_output, 0);
-        self.bundle.session.run(&mut args).unwrap();
+        self.bundle.session.run(&mut args)?;
     
         // Check the output.
         let output: tf::Tensor<f32> = args.fetch(token_output)?;
@@ -116,6 +119,16 @@ impl Classifier {
         // This index is expected to be identical with that of the Python code,
         // but this is not guaranteed due to floating operations.
         let class = &self.classes[&max_idx][1];
+        
         Ok(class)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        let result = 2 + 2;
+        assert_eq!(result, 4);
     }
 }

@@ -5,7 +5,9 @@ use std::time::Duration;
 
 use opencv::core::Vec3b;
 use opencv::{core, imgproc, prelude::*, videoio, Result};
-mod classifier;
+
+mod image_classification;
+use image_classification::ImageClassifier;
 
 struct ProcessingContext {
     image: Mat,
@@ -52,7 +54,7 @@ fn build_ui(application: &gtk::Application) {
     }
 
     // Create classifier
-    let classifier = classifier::Classifier::new("./src/data/mobilenetv3").unwrap();
+    let classifier = ImageClassifier::new("data/mobilenetv3").unwrap();
 
     // Create data for sharing between GUI and background threads
     let context = Arc::new(Mutex::new(
