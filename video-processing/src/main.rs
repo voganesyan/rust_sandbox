@@ -11,9 +11,8 @@ use image_classification::ImageClassifier;
 
 struct ProcessingContext {
     image: Mat,
-    class: String
+    class: String,
 }
-
 
 fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Error> {
     let height = image.rows();
@@ -32,13 +31,11 @@ fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Er
     Ok(surface)
 }
 
-
 fn calc_scale_factor(image_w: i32, image_h: i32, canvas_w: i32, canvas_h: i32) -> f64 {
     let scale_w = canvas_w as f64 / image_w as f64;
     let scale_h = canvas_h as f64 / image_h as f64;
     scale_w.min(scale_h)
 }
-
 
 fn main() {
     let app = gtk::Application::new(None, Default::default());
@@ -57,10 +54,9 @@ fn build_ui(application: &gtk::Application) {
     let classifier = ImageClassifier::new("data/mobilenetv3").unwrap();
 
     // Create data for sharing between GUI and background threads
-    let context = Arc::new(Mutex::new(
-        ProcessingContext{
+    let context = Arc::new(Mutex::new(ProcessingContext {
         image: Mat::default(),
-        class: String::from("none")
+        class: String::from("none"),
     }));
 
     // Start background thread with reading video stream and classifying images
@@ -70,10 +66,10 @@ fn build_ui(application: &gtk::Application) {
             // Read frame
             let mut frame = Mat::default();
             capture.read(&mut frame).unwrap();
-    
+
             // Classify frame
             let class = classifier.classify(&frame).unwrap();
-    
+
             // Update shared context
             let mut context = context_clone.lock().unwrap();
             context.image = frame;
@@ -111,18 +107,20 @@ fn build_ui(application: &gtk::Application) {
                 scale_factor,
                 scale_factor,
                 imgproc::INTER_LINEAR,
-            ).unwrap();
+            )
+            .unwrap();
             let surface = cv_mat_to_cairo_surface(&small_image).unwrap();
             let x_shift = (width - small_image.cols()) / 2;
             let y_shift = (height - small_image.rows()) / 2;
-            cx.set_source_surface(&surface, x_shift as f64, y_shift as f64).unwrap();
+            cx.set_source_surface(&surface, x_shift as f64, y_shift as f64)
+                .unwrap();
             cx.paint().unwrap();
 
             // Draw class label
             cx.set_font_size(50.0 * scale_factor);
             cx.set_source_rgb(0.8, 0.1, 0.8);
             cx.move_to(5.0, height as f64 - 5.0);
-            cx.show_text(&context.class).unwrap(); 
+            cx.show_text(&context.class).unwrap();
         }
     });
 
