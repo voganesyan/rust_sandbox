@@ -43,6 +43,21 @@ fn main() {
     app.run();
 }
 
+fn create_combobox(label: &str, options: &[&str]) -> gtk::Box {
+    let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    let label = gtk::Label::new(Some(label));
+    label.set_vexpand(false);
+    let combo = gtk::ComboBoxText::new();
+    combo.set_vexpand(false);
+    for option in options {
+        combo.append_text(option);
+    }
+    combo.set_active(Some(0));
+    hbox.append(&label);
+    hbox.append(&combo);
+    hbox
+}
+
 fn build_ui(application: &gtk::Application) {
     // Open video stream (0 is the default camera)
     let mut capture = videoio::VideoCapture::new(0, videoio::CAP_ANY).unwrap();
@@ -86,22 +101,14 @@ fn build_ui(application: &gtk::Application) {
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
     window.set_child(Some(&vbox));
     
-    // Create top horizontal box
-    let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    vbox.append(&hbox);
-
     // Create image processing dropdown
-    let proc_label = gtk::Label::new(Some("Image Processing: "));
-    proc_label.set_vexpand(false);
-    let proc_combo = gtk::ComboBoxText::new();
-    proc_combo.set_vexpand(false);
-    proc_combo.append_text("None");
-    proc_combo.append_text("RGB2Gray (OpenCV)");
-    proc_combo.append_text("RGB2Gray (Own, Sequential)");
-    proc_combo.append_text("RGB2Gray (Own, Parallel)");
-    proc_combo.set_active(Some(0));
-    hbox.append(&proc_label);
-    hbox.append(&proc_combo);
+    let imgproc_hbox = create_combobox(
+        "Image Processing: ",
+        &["None",
+         "RGB2Gray (OpenCV)",
+         "RGB2Gray (Own, Sequential)",
+         "RGB2Gray (Own, Parallel)"]);
+    vbox.append(&imgproc_hbox);
 
     // Create drawing area
     let drawing_area = gtk::DrawingArea::new();
