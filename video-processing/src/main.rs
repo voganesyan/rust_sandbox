@@ -79,7 +79,7 @@ fn build_ui(application: &gtk::Application) {
 
     // Create application window
     let window = gtk::ApplicationWindow::new(application);
-    window.set_title(Some("Face Detector"));
+    window.set_title(Some("Video Processing"));
     window.set_default_size(500, 500);
 
     // Create vertical box
@@ -90,16 +90,15 @@ fn build_ui(application: &gtk::Application) {
     let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     vbox.append(&hbox);
 
-
-    // Create processing dropdown
-    let proc_label = gtk::Label::new(Some("RGB to Gray:"));
+    // Create image processing dropdown
+    let proc_label = gtk::Label::new(Some("Image Processing: "));
     proc_label.set_vexpand(false);
     let proc_combo = gtk::ComboBoxText::new();
     proc_combo.set_vexpand(false);
     proc_combo.append_text("None");
-    proc_combo.append_text("OpenCV");
-    proc_combo.append_text("Own (Sequential)");
-    proc_combo.append_text("Own (Parallel)");
+    proc_combo.append_text("RGB2Gray (OpenCV)");
+    proc_combo.append_text("RGB2Gray (Own, Sequential)");
+    proc_combo.append_text("RGB2Gray (Own, Parallel)");
     proc_combo.set_active(Some(0));
     hbox.append(&proc_label);
     hbox.append(&proc_combo);
