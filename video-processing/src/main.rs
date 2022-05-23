@@ -102,13 +102,20 @@ fn build_ui(application: &gtk::Application) {
     window.set_child(Some(&vbox));
     
     // Create image processing dropdown
-    let imgproc_hbox = create_combobox(
+    let imgproc_box = create_combobox(
         "Image Processing: ",
         &["None",
          "RGB2Gray (OpenCV)",
          "RGB2Gray (Own, Sequential)",
          "RGB2Gray (Own, Parallel)"]);
-    vbox.append(&imgproc_hbox);
+    vbox.append(&imgproc_box);
+
+    // Create image classification dropdown
+    let imgclass_box = create_combobox(
+        "Image Classification: ",
+        &["None",
+         "MobileNetV3 (Tensorflow)"]);
+    vbox.append(&imgclass_box);
 
     // Create drawing area
     let drawing_area = gtk::DrawingArea::new();
