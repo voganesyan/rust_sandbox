@@ -123,7 +123,6 @@ fn build_ui(application: &gtk::Application) {
         if !image.empty() {
             let scale_factor = calc_scale_factor(image.cols(), image.rows(), width, height);
             let mut small_image = Mat::default();
-            println!("{} {}", width, height);
             imgproc::resize(
                 image,
                 &mut small_image,
