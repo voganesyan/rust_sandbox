@@ -20,6 +20,7 @@ struct ProcessingContext {
     // Input preprocessing parameters
     alpha: f64,
     beta: f64,
+    proc_fn: AdjustBrightnessContrastFn,
 
     // Input flag to exit processing thread
     should_stop: bool,
@@ -74,6 +75,7 @@ fn build_ui(application: &gtk::Application) {
         class: String::from("none"),
         alpha: 1.0,
         beta: 0.0,
+        proc_fn: adjust_brightness_contrast_opencv,
         should_stop: false,
         classification_time: Duration::ZERO,
         preprocessing_time: Duration::ZERO, 
@@ -98,7 +100,7 @@ fn build_ui(application: &gtk::Application) {
             // Process frame
             let mut proc_frame = unsafe { Mat::new_rows_cols(frame.rows(), frame.cols(), frame.typ()).unwrap() };
             let now = std::time::Instant::now();
-            adjust_brightness_contrast_opencv(&frame, &mut proc_frame, context.alpha, context.beta);
+            (context.proc_fn)(&frame, &mut proc_frame, context.alpha, context.beta);
             let proc_duration = now.elapsed();
             
             // Classify frame
@@ -140,11 +142,18 @@ fn build_ui(application: &gtk::Application) {
 
     // Create dropdown
     let func_combo = gtk::ComboBoxText::new();
-    //combo.set_vexpand(false);
-    for option in ["OpenCV", "Own (Sequential)", "Own (Parallel)"] {
-        func_combo.append_text(option);
+    //func_combo.set_vexpand(false);
+    for &func_name in ADJUST_BRIGHTNESS_CONTRAST_FN_MAP.keys() {
+        func_combo.append_text(func_name);
     }
     func_combo.set_active(Some(0));
+    let context_clone = context.clone();
+    func_combo.connect_changed(move |combo| {
+        let func_name = combo.active_text().unwrap();
+        let func_name = func_name.as_str();
+        let mut context = context_clone.lock().unwrap();
+        context.proc_fn = ADJUST_BRIGHTNESS_CONTRAST_FN_MAP[func_name];
+    });
 
     // Alpha
     let alpha_label = gtk::Label::new(Some("Contrast"));
