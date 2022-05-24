@@ -12,6 +12,7 @@ use image_classification::ImageClassifier;
 struct ProcessingContext {
     image: Mat,
     class: String,
+    should_stop: bool
 }
 
 fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Error> {
@@ -72,11 +73,12 @@ fn build_ui(application: &gtk::Application) {
     let context = Arc::new(Mutex::new(ProcessingContext {
         image: Mat::default(),
         class: String::from("none"),
+        should_stop: false,
     }));
 
     // Start background thread with reading video stream and classifying images
     let context_clone = context.clone();
-    std::thread::spawn(move || {
+    let _bkgd_thread = std::thread::spawn(move || {
         loop {
             // Read frame
             let mut frame = Mat::default();
@@ -89,6 +91,11 @@ fn build_ui(application: &gtk::Application) {
             let mut context = context_clone.lock().unwrap();
             context.image = frame;
             context.class = String::from(class);
+
+            // Check if it's time to stop
+            if context.should_stop {
+                break;
+            }
         }
     });
 
@@ -96,6 +103,13 @@ fn build_ui(application: &gtk::Application) {
     let window = gtk::ApplicationWindow::new(application);
     window.set_title(Some("Video Processing"));
     window.set_default_size(500, 500);
+    let context_clone = context.clone();
+    window.connect_close_request(move |_window| {
+        let mut context = context_clone.lock().unwrap();
+        context.should_stop = true;
+        // bkgd_thread.join().unwrap();
+        gtk::Inhibit(false)
+    });
 
     // Create vertical box
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
