@@ -16,10 +16,17 @@ struct ProcessingContext {
     // Output data
     image: Mat,
     class: String,
-    // Input parameters
+
+    // Input preprocessing parameters
     alpha: f64,
     beta: f64,
+
+    // Input flag to exit processing thread
     should_stop: bool,
+
+    // Output benchmark data
+    preprocessing_time: Duration,
+    classification_time: Duration,
 }
 
 fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Error> {
@@ -65,9 +72,11 @@ fn build_ui(application: &gtk::Application) {
     let context = Arc::new(Mutex::new(ProcessingContext {
         image: Mat::default(),
         class: String::from("none"),
-        should_stop: false,
         alpha: 1.0,
         beta: 0.0,
+        should_stop: false,
+        classification_time: Duration::ZERO,
+        preprocessing_time: Duration::ZERO, 
     }));
 
     // Start background thread with reading video stream and classifying images
@@ -88,14 +97,20 @@ fn build_ui(application: &gtk::Application) {
 
             // Process frame
             let mut proc_frame = unsafe { Mat::new_rows_cols(frame.rows(), frame.cols(), frame.typ()).unwrap() };
+            let now = std::time::Instant::now();
             adjust_brightness_contrast_opencv(&frame, &mut proc_frame, context.alpha, context.beta);
-
+            let proc_duration = now.elapsed();
+            
             // Classify frame
+            let now = std::time::Instant::now();
             let class = classifier.classify(&proc_frame).unwrap();
-
+            let class_duration = now.elapsed();
+            
             // Update context output data
             context.image = proc_frame;
             context.class = String::from(class);
+            context.preprocessing_time = proc_duration;
+            context.classification_time = class_duration;
         }
     });
 
@@ -203,11 +218,23 @@ fn build_ui(application: &gtk::Application) {
                 .unwrap();
             cx.paint().unwrap();
 
-            // Draw class label
-            cx.set_font_size(50. * scale_factor);
+            // Draw text
+            let font_size = 50. * scale_factor;
+            cx.set_font_size(font_size);
             cx.set_source_rgb(0.8, 0.1, 0.8);
+            
+            // Draw preprocessing label
+            cx.move_to(5., height as f64 - 5. - font_size);
+            let text = format!("Preprocessing:  {:.2} ms",
+                context.preprocessing_time.as_micros() as f64 * 1e-3);
+            cx.show_text(&text).unwrap();
+
+            // Draw classification label
             cx.move_to(5., height as f64 - 5.);
-            cx.show_text(&context.class).unwrap();
+            let text = format!("Classification: {:.2} ms; Class: {}",
+             context.classification_time.as_micros() as f64 * 1e-3,
+             context.class);
+            cx.show_text(&text).unwrap();
         }
     });
 
