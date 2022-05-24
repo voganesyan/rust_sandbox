@@ -9,10 +9,17 @@ use opencv::{core, imgproc, prelude::*, videoio, Result};
 mod image_classification;
 use image_classification::ImageClassifier;
 
+mod image_processing;
+use image_processing::*;
+
 struct ProcessingContext {
+    // Output data
     image: Mat,
     class: String,
-    should_stop: bool
+    // Input parameters
+    alpha: f64,
+    beta: f64,
+    should_stop: bool,
 }
 
 fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Error> {
@@ -44,21 +51,6 @@ fn main() {
     app.run();
 }
 
-fn create_combobox(label: &str, options: &[&str]) -> gtk::Box {
-    let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 0);
-    let label = gtk::Label::new(Some(label));
-    label.set_vexpand(false);
-    let combo = gtk::ComboBoxText::new();
-    combo.set_vexpand(false);
-    for option in options {
-        combo.append_text(option);
-    }
-    combo.set_active(Some(0));
-    hbox.append(&label);
-    hbox.append(&combo);
-    hbox
-}
-
 fn build_ui(application: &gtk::Application) {
     // Open video stream (0 is the default camera)
     let mut capture = videoio::VideoCapture::new(0, videoio::CAP_ANY).unwrap();
@@ -74,6 +66,8 @@ fn build_ui(application: &gtk::Application) {
         image: Mat::default(),
         class: String::from("none"),
         should_stop: false,
+        alpha: 1.0,
+        beta: 0.0,
     }));
 
     // Start background thread with reading video stream and classifying images
@@ -84,18 +78,24 @@ fn build_ui(application: &gtk::Application) {
             let mut frame = Mat::default();
             capture.read(&mut frame).unwrap();
 
-            // Classify frame
-            let class = classifier.classify(&frame).unwrap();
-
-            // Update shared context
+            // Get context
             let mut context = context_clone.lock().unwrap();
-            context.image = frame;
-            context.class = String::from(class);
-
+            
             // Check if it's time to stop
             if context.should_stop {
                 break;
             }
+
+            // Process frame
+            let mut proc_frame = unsafe { Mat::new_rows_cols(frame.rows(), frame.cols(), frame.typ()).unwrap() };
+            adjust_brightness_contrast_opencv(&frame, &mut proc_frame, context.alpha, context.beta);
+
+            // Classify frame
+            let class = classifier.classify(&proc_frame).unwrap();
+
+            // Update context output data
+            context.image = proc_frame;
+            context.class = String::from(class);
         }
     });
 
@@ -117,20 +117,56 @@ fn build_ui(application: &gtk::Application) {
     window.set_child(Some(&vbox));
     
     // Create image processing dropdown
-    let imgproc_box = create_combobox(
-        "Image Processing: ",
-        &["None",
-         "RGB2HSV (OpenCV)",
-         "RGB2HSV (Own, Sequential)",
-         "RGB2HSV (Own, Parallel)"]);
-    vbox.append(&imgproc_box);
+    let imgproc_frame = gtk::Frame::new(Some("Image Processing"));
 
-    // Create image classification dropdown
-    let imgclass_box = create_combobox(
-        "Image Classification: ",
-        &["None",
-         "MobileNetV3 (Tensorflow)"]);
-    vbox.append(&imgclass_box);
+    // Create label
+    let func_label = gtk::Label::new(Some("Function"));
+    //label.set_vexpand(false);
+
+    // Create dropdown
+    let func_combo = gtk::ComboBoxText::new();
+    //combo.set_vexpand(false);
+    for option in ["OpenCV", "Own (Sequential)", "Own (Parallel)"] {
+        func_combo.append_text(option);
+    }
+    func_combo.set_active(Some(0));
+
+    // Alpha
+    let alpha_label = gtk::Label::new(Some("Contrast"));
+    let alpha_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 2.0, 0.01);
+    alpha_scale.set_value(context.lock().unwrap().alpha);
+    alpha_scale.set_draw_value(true);
+
+    // Beta
+    let beta_label = gtk::Label::new(Some("Brightness"));
+    let beta_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, -100.0, 100.0, 1.0);
+    beta_scale.set_value(context.lock().unwrap().beta);
+    beta_scale.set_draw_value(true);
+
+    let context_clone = context.clone();
+    alpha_scale.connect_value_changed(move |scale| {
+        let mut context = context_clone.lock().unwrap();
+        context.alpha = scale.value();
+    });
+
+    let context_clone = context.clone();
+    beta_scale.connect_value_changed(move |scale| {
+        let mut context = context_clone.lock().unwrap();
+        context.beta = scale.value();
+    });
+
+    // Create grid
+    let grid = gtk::Grid::new();
+    grid.set_column_spacing(10);
+    grid.attach(&func_label, 0, 0, 1, 1);
+    grid.attach(&func_combo, 1, 0, 1, 1);
+    grid.attach(&alpha_label, 0, 1, 1, 1);
+    grid.attach(&alpha_scale, 1, 1, 1, 1);
+    grid.attach(&beta_label, 0, 2, 1, 1);
+    grid.attach(&beta_scale, 1, 2, 1, 1);
+
+    imgproc_frame.set_child(Some(&grid));
+    vbox.append(&imgproc_frame);
 
     // Create drawing area
     let drawing_area = gtk::DrawingArea::new();
