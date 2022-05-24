@@ -107,6 +107,7 @@ fn build_ui(application: &gtk::Application) {
     window.connect_close_request(move |_window| {
         let mut context = context_clone.lock().unwrap();
         context.should_stop = true;
+        // TODO: join bkgd_thread to avoid segfault when closing the application
         // bkgd_thread.join().unwrap();
         gtk::Inhibit(false)
     });
@@ -119,9 +120,9 @@ fn build_ui(application: &gtk::Application) {
     let imgproc_box = create_combobox(
         "Image Processing: ",
         &["None",
-         "RGB2Gray (OpenCV)",
-         "RGB2Gray (Own, Sequential)",
-         "RGB2Gray (Own, Parallel)"]);
+         "RGB2HSV (OpenCV)",
+         "RGB2HSV (Own, Sequential)",
+         "RGB2HSV (Own, Parallel)"]);
     vbox.append(&imgproc_box);
 
     // Create image classification dropdown
