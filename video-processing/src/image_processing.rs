@@ -1,21 +1,24 @@
 use opencv::core::*;
-
+use rayon::prelude::*;
 use lazy_static::lazy_static;
 use std::collections::HashMap;
 
-pub type AdjustBrightnessContrastFn = fn(&Mat, &mut Mat, f64, f64);
+
+
+pub type AdjustBrightnessContrastFn = fn(&Mat, f64, f64) -> Mat;
 
 lazy_static!{
     pub static ref ADJUST_BRIGHTNESS_CONTRAST_FN_MAP: HashMap<&'static str, AdjustBrightnessContrastFn> = [
         ("OpenCV", adjust_brightness_contrast_opencv as AdjustBrightnessContrastFn),
         ("Own (Sequential)", adjust_brightness_contrast_own as AdjustBrightnessContrastFn),
-        ("Own (Parallel)", adjust_brightness_contrast_own as AdjustBrightnessContrastFn),
+        ("Own (Parallel)", adjust_brightness_contrast_own_parallel as AdjustBrightnessContrastFn),
     ].iter().copied().collect();
 }
 
-pub fn adjust_brightness_contrast_opencv(src: &Mat, dst: &mut Mat, alpha: f64, beta: f64) {
-    let typ = dst.typ();
-    src.convert_to(dst, typ, alpha, beta).unwrap();
+pub fn adjust_brightness_contrast_opencv(src: &Mat, alpha: f64, beta: f64) -> Mat {
+    let mut dst = Mat::default();
+    src.convert_to(&mut dst, src.typ(), alpha, beta).unwrap();
+    dst
 }
 
 
@@ -26,7 +29,9 @@ fn adjust_value(val: u8, alpha: f64, beta: f64) -> u8 {
     cmp::min(cmp::max(val, 0), 255)
 }
 
-pub fn adjust_brightness_contrast_own(src: &Mat, dst: &mut Mat, alpha: f64, beta: f64) {
+pub fn adjust_brightness_contrast_own(src: &Mat, alpha: f64, beta: f64) -> Mat {
+    let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
+
     let height = src.rows() as isize;
     let width = src.cols();
     let src_step = src.mat_step()[0] as isize;
@@ -45,6 +50,24 @@ pub fn adjust_brightness_contrast_own(src: &Mat, dst: &mut Mat, alpha: f64, beta
             }
         }
     }
+    dst
+}
+
+pub fn adjust_brightness_contrast_own_parallel(src: &Mat, alpha: f64, beta: f64) -> Mat {
+    // let height = src.rows();
+    // let width = src.cols();
+    // let src_it = src.iter::<Vec3b>().unwrap();
+    // let dst_it = src.iter::<Vec3b>().unwrap();
+    // for it in src_it.zip(dst_it) {
+    //     let (src, dst) = it;
+    //     let src = src.1;
+    //     let dst = dst.1;
+    //     dst[0] = src[0];
+    //     dst[1] = src[1];
+    //     dst[2] = src[2];
+    // }
+    let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
+    dst
 }
 
 #[cfg(test)]
