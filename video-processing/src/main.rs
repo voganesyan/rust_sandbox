@@ -160,12 +160,14 @@ fn build_ui(application: &gtk::Application) {
     let alpha_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 2.0, 0.01);
     alpha_scale.set_value(context.lock().unwrap().alpha);
     alpha_scale.set_draw_value(true);
+    alpha_scale.set_value_pos(gtk::PositionType::Left);
 
     // Beta
     let beta_label = gtk::Label::new(Some("Brightness"));
     let beta_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, -100.0, 100.0, 1.0);
     beta_scale.set_value(context.lock().unwrap().beta);
     beta_scale.set_draw_value(true);
+    beta_scale.set_value_pos(gtk::PositionType::Left);
 
     let context_clone = context.clone();
     alpha_scale.connect_value_changed(move |scale| {
@@ -230,7 +232,7 @@ fn build_ui(application: &gtk::Application) {
             // Draw text
             let font_size = 50. * scale_factor;
             cx.set_font_size(font_size);
-            cx.set_source_rgb(0.8, 0.1, 0.8);
+            cx.set_source_rgb(0.0, 0.8, 0.0);
             
             // Draw preprocessing label
             cx.move_to(5., height as f64 - 5. - font_size);
