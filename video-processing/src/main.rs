@@ -133,7 +133,7 @@ fn build_ui(application: &gtk::Application) {
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
     window.set_child(Some(&vbox));
     
-    // Create image processing dropdown
+    // Create image processing controls
     let imgproc_frame = gtk::Frame::new(Some("Image Processing"));
 
     // Create label
@@ -192,7 +192,31 @@ fn build_ui(application: &gtk::Application) {
     grid.attach(&beta_scale, 1, 2, 1, 1);
 
     imgproc_frame.set_child(Some(&grid));
-    vbox.append(&imgproc_frame);
+
+    // Create image classification controls
+    let imgclass_frame = gtk::Frame::new(Some("Image Classification"));
+    
+    // Create label
+    let model_label = gtk::Label::new(Some("Function"));
+
+    // Create dropdown
+    let model_combo = gtk::ComboBoxText::new();
+    model_combo.append_text("MobileNetV3");
+    model_combo.set_active(Some(0));
+
+    // Create grid
+    let grid = gtk::Grid::new();
+    grid.set_column_spacing(10);
+    grid.attach(&model_label, 0, 0, 1, 1);
+    grid.attach(&model_combo, 1, 0, 1, 1);
+
+    imgclass_frame.set_child(Some(&grid));
+
+    let hbox = gtk::Box::new(gtk::Orientation::Horizontal,10);
+    hbox.append(&imgproc_frame);
+    hbox.append(&imgclass_frame);
+
+    vbox.append(&hbox);
 
     // Create drawing area
     let drawing_area = gtk::DrawingArea::new();
