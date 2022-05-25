@@ -31,7 +31,6 @@ fn adjust_value(val: u8, alpha: f64, beta: f64) -> u8 {
 
 pub fn adjust_brightness_contrast_own(src: &Mat, alpha: f64, beta: f64) -> Mat {
     let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
-
     let height = src.rows() as isize;
     let width = src.cols();
     let src_step = src.mat_step()[0] as isize;
@@ -54,19 +53,11 @@ pub fn adjust_brightness_contrast_own(src: &Mat, alpha: f64, beta: f64) -> Mat {
 }
 
 pub fn adjust_brightness_contrast_own_parallel(src: &Mat, alpha: f64, beta: f64) -> Mat {
-    // let height = src.rows();
-    // let width = src.cols();
-    // let src_it = src.iter::<Vec3b>().unwrap();
-    // let dst_it = src.iter::<Vec3b>().unwrap();
-    // for it in src_it.zip(dst_it) {
-    //     let (src, dst) = it;
-    //     let src = src.1;
-    //     let dst = dst.1;
-    //     dst[0] = src[0];
-    //     dst[1] = src[1];
-    //     dst[2] = src[2];
-    // }
     let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
+    let src_data = src.data_bytes().unwrap();
+    let dst_data = dst.data_bytes_mut().unwrap();
+    let it = src_data.par_iter().zip(dst_data.par_iter_mut());
+    it.for_each(|(src, dst)| *dst = adjust_value(*src, alpha, beta) );
     dst
 }
 
