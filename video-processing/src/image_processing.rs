@@ -32,19 +32,22 @@ fn adjust_value(val: u8, alpha: f64, beta: f64) -> u8 {
 
 pub fn adjust_brightness_contrast_own(src: &Mat, alpha: f64, beta: f64) -> Mat {
     let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
+    let lut: Vec<u8> = (0..=255).map(|val| adjust_value(val, alpha, beta)).collect();
     let src_data = src.data_bytes().unwrap();
     let dst_data = dst.data_bytes_mut().unwrap();
     let it = src_data.iter().zip(dst_data.iter_mut());
-    it.for_each(|(src, dst)| *dst = adjust_value(*src, alpha, beta) );
+    it.for_each(|(src, dst)| *dst = lut[*src as usize] );
     dst
 }
 
 pub fn adjust_brightness_contrast_own_parallel(src: &Mat, alpha: f64, beta: f64) -> Mat {
     let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
+    let lut: Vec<u8> = (0..=255).map(|val| adjust_value(val, alpha, beta)).collect();
+
     let src_data = src.data_bytes().unwrap();
     let dst_data = dst.data_bytes_mut().unwrap();
     let it = src_data.par_iter().zip(dst_data.par_iter_mut());
-    it.for_each(|(src, dst)| *dst = adjust_value(*src, alpha, beta) );
+    it.for_each(|(src, dst)| *dst = lut[*src as usize] );
     dst
 }
 
@@ -52,6 +55,8 @@ pub fn adjust_brightness_contrast_own_parallel(src: &Mat, alpha: f64, beta: f64)
 
 pub fn adjust_brightness_contrast_own_parallel_row(src: &Mat, alpha: f64, beta: f64) -> Mat {
     let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
+    let lut: Vec<u8> = (0..=255).map(|val| adjust_value(val, alpha, beta)).collect();
+    
     let src_data = src.data_bytes().unwrap();
     let dst_data = dst.data_bytes_mut().unwrap();
     let chunk_size = (src.cols() * 3) as usize;
@@ -61,7 +66,7 @@ pub fn adjust_brightness_contrast_own_parallel_row(src: &Mat, alpha: f64, beta: 
     it.for_each(|(src, dst)| {
         let it = src.iter().zip(dst.iter_mut());
         it.for_each(|(src, dst)| {
-            *dst = adjust_value(*src, alpha, beta);
+            *dst = lut[*src as usize];
         });
     });
     dst
