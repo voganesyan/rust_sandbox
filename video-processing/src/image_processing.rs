@@ -12,7 +12,9 @@ lazy_static!{
         ("OpenCV", adjust_brightness_contrast_opencv as AdjustBrightnessContrastFn),
         ("Own (Sequential)", adjust_brightness_contrast_own as AdjustBrightnessContrastFn),
         ("Own (Parallel)", adjust_brightness_contrast_own_parallel as AdjustBrightnessContrastFn),
-    ].iter().copied().collect();
+        ("Own (Parallel Row)", adjust_brightness_contrast_own_parallel_row as AdjustBrightnessContrastFn),
+
+        ].iter().copied().collect();
 }
 
 pub fn adjust_brightness_contrast_opencv(src: &Mat, alpha: f64, beta: f64) -> Mat {
@@ -21,8 +23,7 @@ pub fn adjust_brightness_contrast_opencv(src: &Mat, alpha: f64, beta: f64) -> Ma
     dst
 }
 
-
-
+#[inline]
 fn adjust_value(val: u8, alpha: f64, beta: f64) -> u8 {
     use std::cmp;
     let val = (val as f64 * alpha + beta) as u8;
@@ -31,24 +32,10 @@ fn adjust_value(val: u8, alpha: f64, beta: f64) -> u8 {
 
 pub fn adjust_brightness_contrast_own(src: &Mat, alpha: f64, beta: f64) -> Mat {
     let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
-    let height = src.rows() as isize;
-    let width = src.cols();
-    let src_step = src.mat_step()[0] as isize;
-    let dst_step = dst.mat_step()[0] as isize;
-    let num_channles = src.mat_step()[1];
-    for y in 0..height {
-        unsafe {
-            let mut src_p = src.data().offset(y * src_step);
-            let mut dst_p = dst.data_mut().offset(y * dst_step);
-            for _ in 0..width {
-                for _ in 0..num_channles {
-                    *dst_p = adjust_value(*src_p, alpha, beta);
-                    src_p = src_p.offset(1);
-                    dst_p = dst_p.offset(1);
-                }
-            }
-        }
-    }
+    let src_data = src.data_bytes().unwrap();
+    let dst_data = dst.data_bytes_mut().unwrap();
+    let it = src_data.iter().zip(dst_data.iter_mut());
+    it.for_each(|(src, dst)| *dst = adjust_value(*src, alpha, beta) );
     dst
 }
 
@@ -60,6 +47,26 @@ pub fn adjust_brightness_contrast_own_parallel(src: &Mat, alpha: f64, beta: f64)
     it.for_each(|(src, dst)| *dst = adjust_value(*src, alpha, beta) );
     dst
 }
+
+
+
+pub fn adjust_brightness_contrast_own_parallel_row(src: &Mat, alpha: f64, beta: f64) -> Mat {
+    let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
+    let src_data = src.data_bytes().unwrap();
+    let dst_data = dst.data_bytes_mut().unwrap();
+    let chunk_size = (src.cols() * 3) as usize;
+    let src_iter = src_data.par_chunks(chunk_size);
+    let dst_iter = dst_data.par_chunks_mut(chunk_size);
+    let it = src_iter.zip(dst_iter);
+    it.for_each(|(src, dst)| {
+        let it = src.iter().zip(dst.iter_mut());
+        it.for_each(|(src, dst)| {
+            *dst = adjust_value(*src, alpha, beta);
+        });
+    });
+    dst
+}
+
 
 #[cfg(test)]
 mod tests {
