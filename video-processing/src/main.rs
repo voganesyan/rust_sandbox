@@ -133,10 +133,10 @@ fn build_ui(application: &gtk::Application) {
     window.set_child(Some(&vbox));
     
     // Create image processing controls
-    let imgproc_frame = gtk::Frame::new(Some("Image Processing"));
+    let imgproc_frame = gtk::Frame::new(Some("Brightness/Contrast"));
 
     // Create label
-    let func_label = gtk::Label::new(Some("Function"));
+    let func_label = gtk::Label::new(Some("Method"));
     //label.set_vexpand(false);
 
     // Create dropdown
@@ -189,14 +189,18 @@ fn build_ui(application: &gtk::Application) {
     grid.attach(&alpha_scale, 1, 1, 1, 1);
     grid.attach(&beta_label, 0, 2, 1, 1);
     grid.attach(&beta_scale, 1, 2, 1, 1);
+    grid.set_margin_start(10);
+    grid.set_margin_end(10);
+    grid.set_margin_top(10);
+    grid.set_margin_bottom(10);
 
     imgproc_frame.set_child(Some(&grid));
 
     // Create image classification controls
     let imgclass_frame = gtk::Frame::new(Some("Image Classification"));
-    
+
     // Create label
-    let model_label = gtk::Label::new(Some("Function"));
+    let model_label = gtk::Label::new(Some("Model"));
 
     // Create dropdown
     let model_combo = gtk::ComboBoxText::new();
@@ -208,12 +212,21 @@ fn build_ui(application: &gtk::Application) {
     grid.set_column_spacing(10);
     grid.attach(&model_label, 0, 0, 1, 1);
     grid.attach(&model_combo, 1, 0, 1, 1);
+    grid.set_margin_start(10);
+    grid.set_margin_end(10);
+    grid.set_margin_top(10);
+    grid.set_margin_bottom(10);
 
     imgclass_frame.set_child(Some(&grid));
 
     let hbox = gtk::Box::new(gtk::Orientation::Horizontal,10);
     hbox.append(&imgproc_frame);
     hbox.append(&imgclass_frame);
+
+    hbox.set_margin_start(10);
+    hbox.set_margin_end(10);
+    hbox.set_margin_top(10);
+    hbox.set_margin_bottom(10);
 
     vbox.append(&hbox);
 
@@ -255,11 +268,11 @@ fn build_ui(application: &gtk::Application) {
             // Draw text
             let font_size = 50. * scale_factor;
             cx.set_font_size(font_size);
-            cx.set_source_rgb(0.0, 0.8, 0.0);
+            cx.set_source_rgb(0.1, 0.1, 0.1);
             
             // Draw preprocessing label
             cx.move_to(5., height as f64 - 5. - font_size);
-            let text = format!("Preprocessing:  {:.2} ms",
+            let text = format!("Brightness/Constrast:  {:.2} ms",
                 context.preprocessing_time.as_micros() as f64 * 1e-3);
             cx.show_text(&text).unwrap();
 
