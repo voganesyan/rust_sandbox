@@ -12,6 +12,8 @@ use image_classification::ImageClassifier;
 mod image_processing;
 use image_processing::*;
 
+mod ui;
+
 struct ProcessingContext {
     // Output data
     image: Mat,
@@ -55,11 +57,11 @@ fn calc_scale_factor(image_w: i32, image_h: i32, canvas_w: i32, canvas_h: i32) -
 
 fn main() {
     let app = gtk::Application::new(None, Default::default());
-    app.connect_activate(build_ui);
+    app.connect_activate(activate_app);
     app.run();
 }
 
-fn build_ui(application: &gtk::Application) {
+fn activate_app(application: &gtk::Application) {
     // Open video stream (0 is the default camera)
     let mut capture = videoio::VideoCapture::new(0, videoio::CAP_ANY).unwrap();
     if !capture.is_opened().unwrap() {
@@ -116,11 +118,9 @@ fn build_ui(application: &gtk::Application) {
     });
 
     // Create application window
-    let window = gtk::ApplicationWindow::new(application);
-    window.set_title(Some("Video Processing"));
-    window.set_default_size(500, 500);
+    let ui = ui::build_ui(application);
     let context_clone = context.clone();
-    window.connect_close_request(move |_window| {
+    ui.window.connect_close_request(move |_window| {
         let mut context = context_clone.lock().unwrap();
         context.should_stop = true;
         // TODO: join bkgd_thread to avoid segfault when closing the application
@@ -128,115 +128,40 @@ fn build_ui(application: &gtk::Application) {
         gtk::Inhibit(false)
     });
 
-    // Create vertical box
-    let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    window.set_child(Some(&vbox));
-    
-    // Create image processing controls
-    let imgproc_frame = gtk::Frame::new(Some("Brightness/Contrast"));
-
-    // Create label
-    let func_label = gtk::Label::new(Some("Method"));
-    //label.set_vexpand(false);
-
-    // Create dropdown
-    let func_combo = gtk::ComboBoxText::new();
-    //func_combo.set_vexpand(false);
     for &func_name in ADJUST_BRIGHTNESS_CONTRAST_FN_MAP.keys() {
-        func_combo.append_text(func_name);
+        ui.func_combo.append_text(func_name);
     }
-    func_combo.set_active(Some(0));
+    ui.func_combo.set_active(Some(0));
     let context_clone = context.clone();
-    func_combo.connect_changed(move |combo| {
+    ui.func_combo.connect_changed(move |combo| {
         let func_name = combo.active_text().unwrap();
         let func_name = func_name.as_str();
         let mut context = context_clone.lock().unwrap();
         context.proc_fn = ADJUST_BRIGHTNESS_CONTRAST_FN_MAP[func_name];
     });
 
-    // Alpha
-    let alpha_label = gtk::Label::new(Some("Contrast"));
-    let alpha_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 2.0, 0.01);
-    alpha_scale.set_value(context.lock().unwrap().alpha);
-    alpha_scale.set_draw_value(true);
-    alpha_scale.set_value_pos(gtk::PositionType::Left);
+    ui.alpha_scale.set_value(context.lock().unwrap().alpha);
+    ui.beta_scale.set_value(context.lock().unwrap().beta);
 
-    // Beta
-    let beta_label = gtk::Label::new(Some("Brightness"));
-    let beta_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, -100.0, 100.0, 1.0);
-    beta_scale.set_value(context.lock().unwrap().beta);
-    beta_scale.set_draw_value(true);
-    beta_scale.set_value_pos(gtk::PositionType::Left);
 
     let context_clone = context.clone();
-    alpha_scale.connect_value_changed(move |scale| {
+    ui.alpha_scale.connect_value_changed(move |scale| {
         let mut context = context_clone.lock().unwrap();
         context.alpha = scale.value();
     });
 
     let context_clone = context.clone();
-    beta_scale.connect_value_changed(move |scale| {
+    ui.beta_scale.connect_value_changed(move |scale| {
         let mut context = context_clone.lock().unwrap();
         context.beta = scale.value();
     });
 
-    // Create grid
-    let grid = gtk::Grid::new();
-    grid.set_column_spacing(10);
-    grid.attach(&func_label, 0, 0, 1, 1);
-    grid.attach(&func_combo, 1, 0, 1, 1);
-    grid.attach(&alpha_label, 0, 1, 1, 1);
-    grid.attach(&alpha_scale, 1, 1, 1, 1);
-    grid.attach(&beta_label, 0, 2, 1, 1);
-    grid.attach(&beta_scale, 1, 2, 1, 1);
-    grid.set_margin_start(10);
-    grid.set_margin_end(10);
-    grid.set_margin_top(10);
-    grid.set_margin_bottom(10);
+    ui.model_combo.append_text("MobileNetV3");
+    ui.model_combo.set_active(Some(0));
 
-    imgproc_frame.set_child(Some(&grid));
-
-    // Create image classification controls
-    let imgclass_frame = gtk::Frame::new(Some("Image Classification"));
-
-    // Create label
-    let model_label = gtk::Label::new(Some("Model"));
-
-    // Create dropdown
-    let model_combo = gtk::ComboBoxText::new();
-    model_combo.append_text("MobileNetV3");
-    model_combo.set_active(Some(0));
-
-    // Create grid
-    let grid = gtk::Grid::new();
-    grid.set_column_spacing(10);
-    grid.attach(&model_label, 0, 0, 1, 1);
-    grid.attach(&model_combo, 1, 0, 1, 1);
-    grid.set_margin_start(10);
-    grid.set_margin_end(10);
-    grid.set_margin_top(10);
-    grid.set_margin_bottom(10);
-
-    imgclass_frame.set_child(Some(&grid));
-
-    let hbox = gtk::Box::new(gtk::Orientation::Horizontal,10);
-    hbox.append(&imgproc_frame);
-    hbox.append(&imgclass_frame);
-
-    hbox.set_margin_start(10);
-    hbox.set_margin_end(10);
-    hbox.set_margin_top(10);
-    hbox.set_margin_bottom(10);
-
-    vbox.append(&hbox);
-
-    // Create drawing area
-    let drawing_area = gtk::DrawingArea::new();
-    drawing_area.set_vexpand(true);
-    vbox.append(&drawing_area);
 
     // Implement drawing function
-    drawing_area.set_draw_func(move |_, cx, width, height| {
+    ui.drawing_area.set_draw_func(move |_, cx, width, height| {
         // Clear cairo context
         cx.set_operator(cairo::Operator::Clear);
         cx.set_source_rgba(0., 0., 0., 0.);
@@ -286,11 +211,11 @@ fn build_ui(application: &gtk::Application) {
     });
 
     // Show window
-    window.show();
+    ui.window.show();
 
     // Redraw drawing area every 30 milliseconds
     glib::timeout_add_local(Duration::from_millis(30), move || {
-        drawing_area.queue_draw();
+        ui.drawing_area.queue_draw();
         glib::Continue(true)
     });
 }
