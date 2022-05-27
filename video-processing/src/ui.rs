@@ -9,6 +9,21 @@ pub struct UIControls {
     pub model_combo: gtk::ComboBoxText,
 }
 
+const BOX_MARGIN: i32 = 10;
+
+trait SetMargin: WidgetExt {
+    fn set_margin(&self, margin: i32);
+}
+
+impl<T> SetMargin for T where T: WidgetExt {
+    fn set_margin(&self, margin: i32) {
+        self.set_margin_start(margin);
+        self.set_margin_end(margin);
+        self.set_margin_top(margin);
+        self.set_margin_bottom(margin);
+    }
+}
+
 pub fn build_ui(application: &gtk::Application) -> UIControls {
     // Create application window
     let window = gtk::ApplicationWindow::new(application);
@@ -47,10 +62,7 @@ pub fn build_ui(application: &gtk::Application) -> UIControls {
     grid.attach(&alpha_scale, 1, 1, 1, 1);
     grid.attach(&beta_label, 0, 2, 1, 1);
     grid.attach(&beta_scale, 1, 2, 1, 1);
-    grid.set_margin_start(10);
-    grid.set_margin_end(10);
-    grid.set_margin_top(10);
-    grid.set_margin_bottom(10);
+    grid.set_margin(BOX_MARGIN);
 
     imgproc_frame.set_child(Some(&grid));
 
@@ -66,21 +78,14 @@ pub fn build_ui(application: &gtk::Application) -> UIControls {
     grid.set_column_spacing(10);
     grid.attach(&model_label, 0, 0, 1, 1);
     grid.attach(&model_combo, 1, 0, 1, 1);
-    grid.set_margin_start(10);
-    grid.set_margin_end(10);
-    grid.set_margin_top(10);
-    grid.set_margin_bottom(10);
+    grid.set_margin(BOX_MARGIN);
 
     imgclass_frame.set_child(Some(&grid));
 
-    let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    let hbox = gtk::Box::new(gtk::Orientation::Horizontal, BOX_MARGIN);
     hbox.append(&imgproc_frame);
     hbox.append(&imgclass_frame);
-
-    hbox.set_margin_start(10);
-    hbox.set_margin_end(10);
-    hbox.set_margin_top(10);
-    hbox.set_margin_bottom(10);
+    hbox.set_margin(BOX_MARGIN);
 
     vbox.append(&hbox);
 
