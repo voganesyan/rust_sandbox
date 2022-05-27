@@ -3,7 +3,7 @@ use opencv::core::*;
 use rayon::prelude::*;
 use std::collections::HashMap;
 
-pub type AdjustBrightnessContrastFn = fn(&Mat, f64, f64) -> Mat;
+pub type AdjustBrightnessContrastFn = fn(&Mat, &mut Mat, f64, f64);
 
 lazy_static! {
     pub static ref ADJUST_BRIGHTNESS_CONTRAST_FN_MAP: HashMap<&'static str, AdjustBrightnessContrastFn> =
@@ -30,10 +30,8 @@ lazy_static! {
         .collect();
 }
 
-pub fn adjust_brightness_contrast_opencv(src: &Mat, alpha: f64, beta: f64) -> Mat {
-    let mut dst = Mat::default();
-    src.convert_to(&mut dst, src.typ(), alpha, beta).unwrap();
-    dst
+pub fn adjust_brightness_contrast_opencv(src: &Mat, dst: &mut Mat, alpha: f64, beta: f64) {
+    src.convert_to(dst, src.typ(), alpha, beta).unwrap();
 }
 
 #[inline]
@@ -43,8 +41,7 @@ fn adjust_value(val: u8, alpha: f64, beta: f64) -> u8 {
     cmp::min(cmp::max(val, 0), 255)
 }
 
-pub fn adjust_brightness_contrast_own(src: &Mat, alpha: f64, beta: f64) -> Mat {
-    let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
+pub fn adjust_brightness_contrast_own(src: &Mat, dst: &mut Mat, alpha: f64, beta: f64) {
     let lut: Vec<u8> = (0..=255)
         .map(|val| adjust_value(val, alpha, beta))
         .collect();
@@ -52,28 +49,22 @@ pub fn adjust_brightness_contrast_own(src: &Mat, alpha: f64, beta: f64) -> Mat {
     let dst_data = dst.data_bytes_mut().unwrap();
     let it = src_data.iter().zip(dst_data.iter_mut());
     it.for_each(|(src, dst)| *dst = lut[*src as usize]);
-    dst
 }
 
-pub fn adjust_brightness_contrast_own_parallel(src: &Mat, alpha: f64, beta: f64) -> Mat {
-    let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
+pub fn adjust_brightness_contrast_own_parallel(src: &Mat, dst: &mut Mat, alpha: f64, beta: f64) {
     let lut: Vec<u8> = (0..=255)
         .map(|val| adjust_value(val, alpha, beta))
         .collect();
-
     let src_data = src.data_bytes().unwrap();
     let dst_data = dst.data_bytes_mut().unwrap();
     let it = src_data.par_iter().zip(dst_data.par_iter_mut());
     it.for_each(|(src, dst)| *dst = lut[*src as usize]);
-    dst
 }
 
-pub fn adjust_brightness_contrast_own_parallel_rows(src: &Mat, alpha: f64, beta: f64) -> Mat {
-    let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
+pub fn adjust_brightness_contrast_own_parallel_rows(src: &Mat, dst: &mut Mat, alpha: f64, beta: f64) {
     let lut: Vec<u8> = (0..=255)
         .map(|val| adjust_value(val, alpha, beta))
         .collect();
-
     let src_data = src.data_bytes().unwrap();
     let dst_data = dst.data_bytes_mut().unwrap();
     let step = src.mat_step()[0];
@@ -86,7 +77,6 @@ pub fn adjust_brightness_contrast_own_parallel_rows(src: &Mat, alpha: f64, beta:
             *dst = lut[*src as usize];
         });
     });
-    dst
 }
 
 #[cfg(test)]

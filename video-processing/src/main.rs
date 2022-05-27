@@ -208,17 +208,18 @@ fn activate_app(application: &gtk::Application) {
             }
 
             // Process frame
+            let mut proc_frame = unsafe { Mat::new_rows_cols(frame.rows(), frame.cols(), frame.typ()).unwrap() };
             let now = std::time::Instant::now();
-            frame = (context.proc_fn)(&frame, context.contrast, context.brightness);
+            (context.proc_fn)(&frame, &mut proc_frame, context.contrast, context.brightness);
             let proc_duration = now.elapsed();
 
             // Classify frame
             let now = std::time::Instant::now();
-            let class = classifier.classify(&frame).unwrap();
+            let class = classifier.classify(&proc_frame).unwrap();
             let class_duration = now.elapsed();
 
             // Update context output data
-            context.image = frame;
+            context.image = proc_frame;
             context.class = String::from(class);
             context.preprocessing_time = proc_duration;
             context.classification_time = class_duration;
