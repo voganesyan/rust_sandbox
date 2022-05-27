@@ -1,4 +1,5 @@
 use gtk::{cairo, glib, prelude::*};
+use ui::UIControls;
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -67,11 +68,7 @@ fn main() {
     app.run();
 }
 
-fn activate_app(application: &gtk::Application) {
-    // Build UI
-    let ui = ui::build_ui(application);
-
-    // Init UI
+fn init_ui(ui: &UIControls) {
     for &func_name in ADJUST_BRIGHTNESS_CONTRAST_FN_MAP.keys() {
         ui.func_combo.append_text(func_name);
     }
@@ -81,20 +78,9 @@ fn activate_app(application: &gtk::Application) {
 
     ui.model_combo.append_text("MobileNetV3");
     ui.model_combo.set_active(Some(0));
+}
 
-    // Create data for sharing between UI and background threads
-    let context = Arc::new(Mutex::new(ProcessingContext {
-        image: Mat::default(),
-        class: String::from("none"),
-        alpha: ui.alpha_scale.value(),
-        beta: ui.beta_scale.value(),
-        proc_fn: get_combo_active_function(&ui.func_combo),
-        should_stop: false,
-        classification_time: Duration::ZERO,
-        preprocessing_time: Duration::ZERO, 
-    }));
-
-    // Implement UI handlers
+fn set_ui_handlers(ui: &UIControls, context: &Arc<Mutex<ProcessingContext>>) {
     let context_clone = context.clone();
     ui.window.connect_close_request(move |_window| {
         context_clone.lock().unwrap().should_stop = true;
@@ -168,6 +154,27 @@ fn activate_app(application: &gtk::Application) {
             cx.show_text(&text).unwrap();
         }
     });
+}
+
+fn activate_app(application: &gtk::Application) {
+    // Build and init UI
+    let ui = ui::build_ui(application);
+    init_ui(&ui);
+
+    // Create data for sharing between UI and background threads
+    let context = Arc::new(Mutex::new(ProcessingContext {
+        image: Mat::default(),
+        class: String::from("none"),
+        alpha: ui.alpha_scale.value(),
+        beta: ui.beta_scale.value(),
+        proc_fn: get_combo_active_function(&ui.func_combo),
+        should_stop: false,
+        classification_time: Duration::ZERO,
+        preprocessing_time: Duration::ZERO, 
+    }));
+
+    // Set UI handlers
+    set_ui_handlers(&ui, &context);
 
     // Show window
     ui.window.show();
@@ -219,5 +226,4 @@ fn activate_app(application: &gtk::Application) {
             context.classification_time = class_duration;
         }
     });
-
 }
