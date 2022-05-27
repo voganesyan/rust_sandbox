@@ -50,7 +50,7 @@ fn cv_mat_to_cairo_surface(image: &Mat) -> Result<cairo::ImageSurface, cairo::Er
     Ok(surface)
 }
 
-fn get_combo_active_function(combo: &gtk::ComboBoxText) -> AdjustBrightnessContrastFn {
+fn get_combo_active_method(combo: &gtk::ComboBoxText) -> AdjustBrightnessContrastFn {
     let func_name = combo.active_text().unwrap();
     let func_name = func_name.as_str();
     ADJUST_BRIGHTNESS_CONTRAST_FN_MAP[func_name]
@@ -85,7 +85,7 @@ fn set_ui_handlers(ui: &UIControls, context: &Arc<Mutex<ProcessingContext>>) {
 
     let context_clone = context.clone();
     ui.method_combo.connect_changed(move |combo| {
-        context_clone.lock().unwrap().proc_fn = get_combo_active_function(combo);
+        context_clone.lock().unwrap().proc_fn = get_combo_active_method(combo);
     });
 
     let context_clone = context.clone();
@@ -165,7 +165,7 @@ fn activate_app(application: &gtk::Application) {
         class: String::from("none"),
         contrast: ui.contrast_scale.value(),
         brightness: ui.brightness_scale.value(),
-        proc_fn: get_combo_active_function(&ui.method_combo),
+        proc_fn: get_combo_active_method(&ui.method_combo),
         should_stop: false,
         classification_time: Duration::ZERO,
         preprocessing_time: Duration::ZERO,
