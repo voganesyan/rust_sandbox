@@ -9,7 +9,7 @@ lazy_static! {
     pub static ref ADJUST_BRIGHTNESS_CONTRAST_FN_MAP: HashMap<&'static str, AdjustBrightnessContrastFn> =
         [
             (
-                "OpenCV",
+                "OpenCV::convertTo",
                 adjust_brightness_contrast_opencv as AdjustBrightnessContrastFn
             ),
             (
@@ -21,8 +21,8 @@ lazy_static! {
                 adjust_brightness_contrast_own_parallel as AdjustBrightnessContrastFn
             ),
             (
-                "Own (Parallel Row)",
-                adjust_brightness_contrast_own_parallel_row as AdjustBrightnessContrastFn
+                "Own (Parallel Rows)",
+                adjust_brightness_contrast_own_parallel_rows as AdjustBrightnessContrastFn
             ),
         ]
         .iter()
@@ -68,7 +68,7 @@ pub fn adjust_brightness_contrast_own_parallel(src: &Mat, alpha: f64, beta: f64)
     dst
 }
 
-pub fn adjust_brightness_contrast_own_parallel_row(src: &Mat, alpha: f64, beta: f64) -> Mat {
+pub fn adjust_brightness_contrast_own_parallel_rows(src: &Mat, alpha: f64, beta: f64) -> Mat {
     let mut dst = unsafe { Mat::new_rows_cols(src.rows(), src.cols(), src.typ()).unwrap() };
     let lut: Vec<u8> = (0..=255)
         .map(|val| adjust_value(val, alpha, beta))
@@ -76,9 +76,9 @@ pub fn adjust_brightness_contrast_own_parallel_row(src: &Mat, alpha: f64, beta: 
 
     let src_data = src.data_bytes().unwrap();
     let dst_data = dst.data_bytes_mut().unwrap();
-    let chunk_size = (src.cols() * 3) as usize;
-    let src_iter = src_data.par_chunks(chunk_size);
-    let dst_iter = dst_data.par_chunks_mut(chunk_size);
+    let step = src.mat_step()[0];
+    let src_iter = src_data.par_chunks(step);
+    let dst_iter = dst_data.par_chunks_mut(step);
     let it = src_iter.zip(dst_iter);
     it.for_each(|(src, dst)| {
         let it = src.iter().zip(dst.iter_mut());
