@@ -29,34 +29,18 @@ pub struct ImageClassifier {
 }
 
 impl ImageClassifier {
-    pub fn new(export_dir: &str) -> Result<ImageClassifier, Box<dyn Error>> {
-        let model_file: PathBuf = [export_dir, "saved_model.pb"].iter().collect();
-        if !model_file.exists() {
-            return Err(Box::new(
-                tf::Status::new_set(
-                    tf::Code::NotFound,
-                    &format!(
-                        "Run 'python src/mobilenetv3/create_model.py' to generate \
-                         {} and try again.",
-                        model_file.display()
-                    ),
-                )
-                .unwrap(),
-            ));
-        }
-
+    pub fn new(model_dir: &str) -> Result<ImageClassifier, Box<dyn Error>> {
         // Create an eager execution context
         let opts = tf::eager::ContextOptions::new();
         let _ctx = tf::eager::Context::new(opts)?;
 
         // Load the model
         let mut graph = tf::Graph::new();
-
         let bundle = tf::SavedModelBundle::load(
             &tf::SessionOptions::new(),
             &["serve"],
             &mut graph,
-            export_dir,
+            model_dir,
         )?;
 
         // Get in/out operations
@@ -69,7 +53,7 @@ impl ImageClassifier {
         let op_output = graph.operation_by_name_required(&output_info.name().name)?;
 
         // Read classes from JSON
-        let class_file: PathBuf = [export_dir, "imagenet_class_index.json"].iter().collect();
+        let class_file: PathBuf = [model_dir, "imagenet_class_index.json"].iter().collect();
         let json_string = std::fs::read_to_string(class_file)?;
         let classes: ImageNetClasses = serde_json::from_str(&json_string)?;
 
@@ -123,14 +107,5 @@ impl ImageClassifier {
         let class = &self.classes[&max_idx][1];
 
         Ok(class)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
     }
 }
