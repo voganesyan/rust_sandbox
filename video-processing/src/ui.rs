@@ -3,9 +3,9 @@ use gtk::prelude::*;
 pub struct UIControls {
     pub window: gtk::ApplicationWindow,
     pub drawing_area: gtk::DrawingArea,
-    pub func_combo: gtk::ComboBoxText,
-    pub alpha_scale: gtk::Scale,
-    pub beta_scale: gtk::Scale,
+    pub method_combo: gtk::ComboBoxText,
+    pub contrast_scale: gtk::Scale,
+    pub brightness_scale: gtk::Scale,
     pub model_combo: gtk::ComboBoxText,
 }
 
@@ -38,30 +38,30 @@ pub fn build_ui(application: &gtk::Application) -> UIControls {
     let imgproc_frame = gtk::Frame::new(Some("Brightness/Contrast"));
 
     // Method
-    let func_label = gtk::Label::new(Some("Method"));
-    let func_combo = gtk::ComboBoxText::new();
+    let method_label = gtk::Label::new(Some("Method"));
+    let method_combo = gtk::ComboBoxText::new();
 
-    // Alpha
-    let alpha_label = gtk::Label::new(Some("Contrast"));
-    let alpha_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 2.0, 0.01);
-    alpha_scale.set_draw_value(true);
-    alpha_scale.set_value_pos(gtk::PositionType::Left);
+    // Contrast
+    let contrast_label = gtk::Label::new(Some("Contrast"));
+    let contrast_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 2.0, 0.01);
+    contrast_scale.set_draw_value(true);
+    contrast_scale.set_value_pos(gtk::PositionType::Left);
 
-    // Beta
-    let beta_label = gtk::Label::new(Some("Brightness"));
-    let beta_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, -100.0, 100.0, 1.0);
-    beta_scale.set_draw_value(true);
-    beta_scale.set_value_pos(gtk::PositionType::Left);
+    // Brightness
+    let brightness_label = gtk::Label::new(Some("Brightness"));
+    let brightness_scale = gtk::Scale::with_range(gtk::Orientation::Horizontal, -100.0, 100.0, 1.0);
+    brightness_scale.set_draw_value(true);
+    brightness_scale.set_value_pos(gtk::PositionType::Left);
 
     // Create grid
     let grid = gtk::Grid::new();
     grid.set_column_spacing(10);
-    grid.attach(&func_label, 0, 0, 1, 1);
-    grid.attach(&func_combo, 1, 0, 1, 1);
-    grid.attach(&alpha_label, 0, 1, 1, 1);
-    grid.attach(&alpha_scale, 1, 1, 1, 1);
-    grid.attach(&beta_label, 0, 2, 1, 1);
-    grid.attach(&beta_scale, 1, 2, 1, 1);
+    grid.attach(&method_label, 0, 0, 1, 1);
+    grid.attach(&method_combo, 1, 0, 1, 1);
+    grid.attach(&contrast_label, 0, 1, 1, 1);
+    grid.attach(&contrast_scale, 1, 1, 1, 1);
+    grid.attach(&brightness_label, 0, 2, 1, 1);
+    grid.attach(&brightness_scale, 1, 2, 1, 1);
     grid.set_margin(BOX_MARGIN);
 
     imgproc_frame.set_child(Some(&grid));
@@ -97,9 +97,9 @@ pub fn build_ui(application: &gtk::Application) -> UIControls {
     UIControls {
         window,
         drawing_area,
-        func_combo,
-        alpha_scale,
-        beta_scale,
+        method_combo,
+        contrast_scale,
+        brightness_scale,
         model_combo,
     }
 }

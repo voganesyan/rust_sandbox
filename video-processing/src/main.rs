@@ -21,8 +21,8 @@ struct ProcessingContext {
     class: String,
 
     // Input preprocessing parameters
-    alpha: f64,
-    beta: f64,
+    contrast: f64,
+    brightness: f64,
     proc_fn: AdjustBrightnessContrastFn,
 
     // Input flag to exit processing thread
@@ -64,11 +64,11 @@ fn calc_scale_factor(image_w: i32, image_h: i32, canvas_w: i32, canvas_h: i32) -
 
 fn init_ui(ui: &UIControls) {
     for &func_name in ADJUST_BRIGHTNESS_CONTRAST_FN_MAP.keys() {
-        ui.func_combo.append_text(func_name);
+        ui.method_combo.append_text(func_name);
     }
-    ui.func_combo.set_active(Some(0));
-    ui.alpha_scale.set_value(1.0);
-    ui.beta_scale.set_value(0.0);
+    ui.method_combo.set_active(Some(0));
+    ui.contrast_scale.set_value(1.0);
+    ui.brightness_scale.set_value(0.0);
 
     ui.model_combo.append_text("MobileNetV3");
     ui.model_combo.set_active(Some(0));
@@ -84,18 +84,18 @@ fn set_ui_handlers(ui: &UIControls, context: &Arc<Mutex<ProcessingContext>>) {
     });
 
     let context_clone = context.clone();
-    ui.func_combo.connect_changed(move |combo| {
+    ui.method_combo.connect_changed(move |combo| {
         context_clone.lock().unwrap().proc_fn = get_combo_active_function(combo);
     });
 
     let context_clone = context.clone();
-    ui.alpha_scale.connect_value_changed(move |scale| {
-        context_clone.lock().unwrap().alpha = scale.value();
+    ui.contrast_scale.connect_value_changed(move |scale| {
+        context_clone.lock().unwrap().contrast = scale.value();
     });
 
     let context_clone = context.clone();
-    ui.beta_scale.connect_value_changed(move |scale| {
-        context_clone.lock().unwrap().beta = scale.value();
+    ui.brightness_scale.connect_value_changed(move |scale| {
+        context_clone.lock().unwrap().brightness = scale.value();
     });
 
     // Implement drawing function
@@ -163,9 +163,9 @@ fn activate_app(application: &gtk::Application) {
     let context = Arc::new(Mutex::new(ProcessingContext {
         image: Mat::default(),
         class: String::from("none"),
-        alpha: ui.alpha_scale.value(),
-        beta: ui.beta_scale.value(),
-        proc_fn: get_combo_active_function(&ui.func_combo),
+        contrast: ui.contrast_scale.value(),
+        brightness: ui.brightness_scale.value(),
+        proc_fn: get_combo_active_function(&ui.method_combo),
         should_stop: false,
         classification_time: Duration::ZERO,
         preprocessing_time: Duration::ZERO,
@@ -209,7 +209,7 @@ fn activate_app(application: &gtk::Application) {
 
             // Process frame
             let now = std::time::Instant::now();
-            frame = (context.proc_fn)(&frame, context.alpha, context.beta);
+            frame = (context.proc_fn)(&frame, context.contrast, context.brightness);
             let proc_duration = now.elapsed();
 
             // Classify frame
