@@ -82,7 +82,7 @@ fn activate_app(application: &gtk::Application) {
     ui.model_combo.append_text("MobileNetV3");
     ui.model_combo.set_active(Some(0));
 
-    // Create data for sharing between GUI and background threads
+    // Create data for sharing between UI and background threads
     let context = Arc::new(Mutex::new(ProcessingContext {
         image: Mat::default(),
         class: String::from("none"),
@@ -97,8 +97,7 @@ fn activate_app(application: &gtk::Application) {
     // Implement UI handlers
     let context_clone = context.clone();
     ui.window.connect_close_request(move |_window| {
-        let mut context = context_clone.lock().unwrap();
-        context.should_stop = true;
+        context_clone.lock().unwrap().should_stop = true;
         // TODO: join bkgd_thread to avoid segfault when closing the application
         // bkgd_thread.join().unwrap();
         gtk::Inhibit(false)
@@ -106,21 +105,17 @@ fn activate_app(application: &gtk::Application) {
 
     let context_clone = context.clone();
     ui.func_combo.connect_changed(move |combo| {
-        let func = get_combo_active_function(combo);
-        let mut context = context_clone.lock().unwrap();
-        context.proc_fn = func;
+        context_clone.lock().unwrap().proc_fn = get_combo_active_function(combo);
     });
 
     let context_clone = context.clone();
     ui.alpha_scale.connect_value_changed(move |scale| {
-        let mut context = context_clone.lock().unwrap();
-        context.alpha = scale.value();
+        context_clone.lock().unwrap().alpha = scale.value();
     });
 
     let context_clone = context.clone();
     ui.beta_scale.connect_value_changed(move |scale| {
-        let mut context = context_clone.lock().unwrap();
-        context.beta = scale.value();
+        context_clone.lock().unwrap().beta = scale.value();
     });
 
     // Implement drawing function
