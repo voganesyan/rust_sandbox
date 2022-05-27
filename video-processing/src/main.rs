@@ -137,7 +137,7 @@ fn set_ui_handlers(ui: &UIControls, context: &Arc<Mutex<ProcessingContext>>) {
             // Draw preprocessing label
             cx.move_to(5., height as f64 - 5. - font_size);
             let text = format!(
-                "Brightness/Constrast:  {:.2} ms",
+                "Brightness/Constrast: {:.2} ms",
                 context.preprocessing_time.as_micros() as f64 * 1e-3
             );
             cx.show_text(&text).unwrap();
@@ -145,7 +145,7 @@ fn set_ui_handlers(ui: &UIControls, context: &Arc<Mutex<ProcessingContext>>) {
             // Draw classification label
             cx.move_to(5., height as f64 - 5.);
             let text = format!(
-                "Classification: {:.2} ms; Class: {}",
+                "Image Classification: {:.2} ms; Class: {}",
                 context.classification_time.as_micros() as f64 * 1e-3,
                 context.class
             );
