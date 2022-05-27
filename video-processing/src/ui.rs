@@ -6,7 +6,7 @@ pub struct UIControls {
     pub func_combo: gtk::ComboBoxText,
     pub alpha_scale: gtk::Scale,
     pub beta_scale: gtk::Scale,
-    pub model_combo: gtk::ComboBoxText
+    pub model_combo: gtk::ComboBoxText,
 }
 
 pub fn build_ui(application: &gtk::Application) -> UIControls {
@@ -18,7 +18,7 @@ pub fn build_ui(application: &gtk::Application) -> UIControls {
     // Create vertical box
     let vbox = gtk::Box::new(gtk::Orientation::Vertical, 0);
     window.set_child(Some(&vbox));
-    
+
     // Create image processing controls
     let imgproc_frame = gtk::Frame::new(Some("Brightness/Contrast"));
 
@@ -73,7 +73,7 @@ pub fn build_ui(application: &gtk::Application) -> UIControls {
 
     imgclass_frame.set_child(Some(&grid));
 
-    let hbox = gtk::Box::new(gtk::Orientation::Horizontal,10);
+    let hbox = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     hbox.append(&imgproc_frame);
     hbox.append(&imgclass_frame);
 
