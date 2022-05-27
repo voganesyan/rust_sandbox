@@ -62,12 +62,6 @@ fn calc_scale_factor(image_w: i32, image_h: i32, canvas_w: i32, canvas_h: i32) -
     scale_w.min(scale_h)
 }
 
-fn main() {
-    let app = gtk::Application::new(None, Default::default());
-    app.connect_activate(activate_app);
-    app.run();
-}
-
 fn init_ui(ui: &UIControls) {
     for &func_name in ADJUST_BRIGHTNESS_CONTRAST_FN_MAP.keys() {
         ui.func_combo.append_text(func_name);
@@ -139,18 +133,22 @@ fn set_ui_handlers(ui: &UIControls, context: &Arc<Mutex<ProcessingContext>>) {
             let font_size = 50. * scale_factor;
             cx.set_font_size(font_size);
             cx.set_source_rgb(0.1, 0.1, 0.1);
-            
+
             // Draw preprocessing label
             cx.move_to(5., height as f64 - 5. - font_size);
-            let text = format!("Brightness/Constrast:  {:.2} ms",
-                context.preprocessing_time.as_micros() as f64 * 1e-3);
+            let text = format!(
+                "Brightness/Constrast:  {:.2} ms",
+                context.preprocessing_time.as_micros() as f64 * 1e-3
+            );
             cx.show_text(&text).unwrap();
 
             // Draw classification label
             cx.move_to(5., height as f64 - 5.);
-            let text = format!("Classification: {:.2} ms; Class: {}",
-             context.classification_time.as_micros() as f64 * 1e-3,
-             context.class);
+            let text = format!(
+                "Classification: {:.2} ms; Class: {}",
+                context.classification_time.as_micros() as f64 * 1e-3,
+                context.class
+            );
             cx.show_text(&text).unwrap();
         }
     });
@@ -170,7 +168,7 @@ fn activate_app(application: &gtk::Application) {
         proc_fn: get_combo_active_function(&ui.func_combo),
         should_stop: false,
         classification_time: Duration::ZERO,
-        preprocessing_time: Duration::ZERO, 
+        preprocessing_time: Duration::ZERO,
     }));
 
     // Set UI handlers
@@ -203,7 +201,7 @@ fn activate_app(application: &gtk::Application) {
 
             // Get context
             let mut context = context.lock().unwrap();
-            
+
             // Check if it's time to stop
             if context.should_stop {
                 break;
@@ -213,12 +211,12 @@ fn activate_app(application: &gtk::Application) {
             let now = std::time::Instant::now();
             frame = (context.proc_fn)(&frame, context.alpha, context.beta);
             let proc_duration = now.elapsed();
-            
+
             // Classify frame
             let now = std::time::Instant::now();
             let class = classifier.classify(&frame).unwrap();
             let class_duration = now.elapsed();
-            
+
             // Update context output data
             context.image = frame;
             context.class = String::from(class);
@@ -226,4 +224,10 @@ fn activate_app(application: &gtk::Application) {
             context.classification_time = class_duration;
         }
     });
+}
+
+fn main() {
+    let app = gtk::Application::new(None, Default::default());
+    app.connect_activate(activate_app);
+    app.run();
 }
