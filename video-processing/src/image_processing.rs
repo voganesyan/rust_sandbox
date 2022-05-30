@@ -30,6 +30,12 @@ lazy_static! {
         .collect();
 }
 
+/// Adjusts brightness and contrast using opencv::convert_to() method.
+/// 
+/// * src: input matrix;
+/// * dst: output matrix;
+/// * alpha: scale factor.
+/// * beta: delta added to the scaled values.
 pub fn adjust_brightness_contrast_opencv(src: &Mat, dst: &mut Mat, alpha: f64, beta: f64) {
     src.convert_to(dst, src.typ(), alpha, beta).unwrap();
 }
@@ -41,6 +47,13 @@ fn adjust_value(val: u8, alpha: f64, beta: f64) -> u8 {
     cmp::min(cmp::max(val, 0), 255)
 }
 
+/// Adjusts brightness and contrast using sequential zip iteration 
+/// through source and dest matrices.
+/// 
+/// * src: input matrix;
+/// * dst: output matrix;
+/// * alpha: scale factor.
+/// * beta: delta added to the scaled values.
 pub fn adjust_brightness_contrast_own(src: &Mat, dst: &mut Mat, alpha: f64, beta: f64) {
     let lut: Vec<u8> = (0..=255)
         .map(|val| adjust_value(val, alpha, beta))
@@ -51,6 +64,13 @@ pub fn adjust_brightness_contrast_own(src: &Mat, dst: &mut Mat, alpha: f64, beta
     it.for_each(|(src, dst)| *dst = lut[*src as usize]);
 }
 
+/// Adjusts brightness and contrast using rayon-parallelized zip iteration 
+/// through values of source and dest matrices.
+/// 
+/// * src: input matrix;
+/// * dst: output matrix;
+/// * alpha: scale factor.
+/// * beta: delta added to the scaled values.
 pub fn adjust_brightness_contrast_own_parallel(src: &Mat, dst: &mut Mat, alpha: f64, beta: f64) {
     let lut: Vec<u8> = (0..=255)
         .map(|val| adjust_value(val, alpha, beta))
@@ -61,6 +81,13 @@ pub fn adjust_brightness_contrast_own_parallel(src: &Mat, dst: &mut Mat, alpha: 
     it.for_each(|(src, dst)| *dst = lut[*src as usize]);
 }
 
+/// Adjusts brightness and contrast using rayon-parallelized zip iteration 
+/// through rows of source and dest matrices.
+/// 
+/// * src: input matrix;
+/// * dst: output matrix;
+/// * alpha: scale factor.
+/// * beta: delta added to the scaled values.
 pub fn adjust_brightness_contrast_own_parallel_rows(src: &Mat, dst: &mut Mat, alpha: f64, beta: f64) {
     let lut: Vec<u8> = (0..=255)
         .map(|val| adjust_value(val, alpha, beta))
