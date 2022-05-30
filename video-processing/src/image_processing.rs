@@ -48,7 +48,7 @@ fn adjust_value(val: u8, alpha: f64, beta: f64) -> u8 {
 }
 
 /// Adjusts brightness and contrast using sequential zip iteration 
-/// through source and dest matrices.
+/// through values of source and dest matrices.
 /// 
 /// * src: input matrix;
 /// * dst: output matrix;
