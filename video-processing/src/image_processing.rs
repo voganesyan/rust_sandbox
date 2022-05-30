@@ -84,22 +84,40 @@ mod tests {
     use super::*;
     use rand::Rng;
 
-    #[test]
-    fn it_works() {
+    fn test_func(func: AdjustBrightnessContrastFn) {
         let mut rng = rand::thread_rng();
-        let h = rng.gen_range(1..100);
-        let w = rng.gen_range(1..100);
+        let h = rng.gen_range(1..400);
+        let w = rng.gen_range(1..400);
         let alpha = rng.gen_range(0.0..2.0);
         let beta = rng.gen_range(-100.0..100.0);
 
-        let src = unsafe { Mat::new_rows_cols(h, w, CV_8UC3).unwrap() };
+        let mut src = unsafe { Mat::new_rows_cols(h, w, CV_8UC3).unwrap() };
+        let low = Scalar::new(0., 0., 0., 0.);
+        let high = Scalar::new(255., 255., 255., 255.);
+        randu(&mut src, &low, &high).unwrap();
+
         let mut dst1 = unsafe { Mat::new_rows_cols(h, w, CV_8UC3).unwrap() };
         let mut dst2 = unsafe { Mat::new_rows_cols(h, w, CV_8UC3).unwrap() };
         adjust_brightness_contrast_opencv(&src, &mut dst1, alpha, beta);
-        adjust_brightness_contrast_own(&src, &mut dst2, alpha, beta);
+        func(&src, &mut dst2, alpha, beta);
         let dst1 = dst1.data_bytes().unwrap();
         let dst2 = dst2.data_bytes().unwrap();
 
         assert!(dst1.iter().zip(dst2.iter()).all(|(a,b)| a == b), "Results are not equal");
+    }
+
+    #[test]
+    fn test_own() {
+        test_func(adjust_brightness_contrast_own);
+    }
+
+    #[test]
+    fn test_own_parallel() {
+        test_func(adjust_brightness_contrast_own_parallel);
+    }
+
+    #[test]
+    fn test_own_parallel_rows() {
+        test_func(adjust_brightness_contrast_own_parallel_rows);
     }
 }
