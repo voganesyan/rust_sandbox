@@ -37,7 +37,7 @@ pub fn adjust_brightness_contrast_opencv(src: &Mat, dst: &mut Mat, alpha: f64, b
 #[inline]
 fn adjust_value(val: u8, alpha: f64, beta: f64) -> u8 {
     use std::cmp;
-    let val = (val as f64 * alpha + beta) as u8;
+    let val = (val as f64 * alpha + beta).round() as u8;
     cmp::min(cmp::max(val, 0), 255)
 }
 
