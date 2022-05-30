@@ -81,9 +81,25 @@ pub fn adjust_brightness_contrast_own_parallel_rows(src: &Mat, dst: &mut Mat, al
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+    use rand::Rng;
+
     #[test]
     fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+        let mut rng = rand::thread_rng();
+        let h = rng.gen_range(1..100);
+        let w = rng.gen_range(1..100);
+        let alpha = rng.gen_range(0.0..2.0);
+        let beta = rng.gen_range(-100.0..100.0);
+
+        let src = unsafe { Mat::new_rows_cols(h, w, CV_8UC3).unwrap() };
+        let mut dst1 = unsafe { Mat::new_rows_cols(h, w, CV_8UC3).unwrap() };
+        let mut dst2 = unsafe { Mat::new_rows_cols(h, w, CV_8UC3).unwrap() };
+        adjust_brightness_contrast_opencv(&src, &mut dst1, alpha, beta);
+        adjust_brightness_contrast_own(&src, &mut dst2, alpha, beta);
+        let dst1 = dst1.data_bytes().unwrap();
+        let dst2 = dst2.data_bytes().unwrap();
+
+        assert!(dst1.iter().zip(dst2.iter()).all(|(a,b)| a == b), "Results are not equal");
     }
 }
