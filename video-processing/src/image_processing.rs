@@ -61,7 +61,7 @@ pub fn adjust_brightness_contrast_own(src: &Mat, dst: &mut Mat, alpha: f64, beta
     let src_data = src.data_bytes().unwrap();
     let dst_data = dst.data_bytes_mut().unwrap();
     let it = src_data.iter().zip(dst_data.iter_mut());
-    it.for_each(|(src, dst)| *dst = lut[*src as usize]);
+    it.for_each(|(src, dst)| unsafe { *dst = *lut.get_unchecked(*src as usize) });
 }
 
 /// Adjusts brightness and contrast using rayon-parallelized zip iteration 
@@ -78,7 +78,7 @@ pub fn adjust_brightness_contrast_own_parallel(src: &Mat, dst: &mut Mat, alpha: 
     let src_data = src.data_bytes().unwrap();
     let dst_data = dst.data_bytes_mut().unwrap();
     let it = src_data.par_iter().zip(dst_data.par_iter_mut());
-    it.for_each(|(src, dst)| *dst = lut[*src as usize]);
+    it.for_each(|(src, dst)| unsafe { *dst = *lut.get_unchecked(*src as usize) });
 }
 
 /// Adjusts brightness and contrast using rayon-parallelized zip iteration 
@@ -100,8 +100,8 @@ pub fn adjust_brightness_contrast_own_parallel_rows(src: &Mat, dst: &mut Mat, al
     let it = src_iter.zip(dst_iter);
     it.for_each(|(src, dst)| {
         let it = src.iter().zip(dst.iter_mut());
-        it.for_each(|(src, dst)| {
-            *dst = lut[*src as usize];
+        it.for_each(|(src, dst)| unsafe {
+             *dst = *lut.get_unchecked(*src as usize);
         });
     });
 }
